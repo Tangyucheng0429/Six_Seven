@@ -1,0 +1,2 @@
+# fintech-forward-2026
+HACKATHON X: FINTECH FORWARD PROJECT
