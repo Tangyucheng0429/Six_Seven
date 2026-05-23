@@ -1,3 +1,6 @@
+import { hostRouteForStatus } from '../constants/flows'
+import { getHostRoomIds } from './useHostCookie'
+
 const ROOMS_KEY = 'sixseven_rooms'
 const ACCESS_KEY = 'sixseven_my_access'
 
@@ -75,9 +78,48 @@ export function getMyRoomsFromStorage(state) {
     .filter(Boolean)
 }
 
+export function getHostBills(state) {
+  const cookieIds = new Set(getHostRoomIds())
+  const seen = new Set()
+  const list = []
+
+  for (const a of getMyAccessList()) {
+    if (a.role !== 'host' && !cookieIds.has(a.roomId)) continue
+    if (seen.has(a.roomId)) continue
+    seen.add(a.roomId)
+    const room = state.rooms[a.roomId] || readJson(ROOMS_KEY, {})[a.roomId]
+    if (room) list.push({ ...a, room })
+  }
+
+  for (const roomId of cookieIds) {
+    if (seen.has(roomId)) continue
+    const room = state.rooms[roomId] || readJson(ROOMS_KEY, {})[roomId]
+    if (room) {
+      list.push({
+        roomId,
+        role: 'host',
+        hostToken: room.hostToken,
+        billName: room.name,
+        status: room.status,
+        room,
+      })
+    }
+  }
+
+  return list.sort((a, b) => {
+    const ta = a.room.completedAt || a.room.createdAt || ''
+    const tb = b.room.completedAt || b.room.createdAt || ''
+    return tb.localeCompare(ta)
+  })
+}
+
 export function openPathForEntry(entry) {
   if (entry.role === 'host') {
-    return `/room/${entry.roomId}?token=${entry.hostToken}`
+    const room = entry.room
+    if (room && room.status !== 'open' && room.status !== 'overdue') {
+      return hostRouteForStatus(entry.roomId, room.status)
+    }
+    return `/room/${entry.roomId}`
   }
   const room = entry.room
   if (!room) return `/join/${entry.roomId}`

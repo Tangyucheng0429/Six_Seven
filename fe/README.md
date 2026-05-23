@@ -10,6 +10,12 @@ cd fe && npm install && npm run dev
 
 ## UI flow
 
+### Home (`/`)
+
+- **Create bill room** → host flow (cookie set on create, no login)
+- **Enter room number** → `/enter-room` → join when bill is open
+- **Host history** → `/history` (only if host cookie exists)
+
 ### Host
 
 | Step | Route | Action |
@@ -20,15 +26,15 @@ cd fe && npm install && npm run dev
 | 4 | `/room/:id/split-mode` | Equal or Item-based split |
 | 5 | `/room/:id/review` | Verify line items |
 | 6 | `/room/:id/payment-setup` | Payment method + QR |
-| 7 | `/room/:id` | Invite link, confirm payments, save history |
+| 7 | `/room/:id` | Room number + invite link, confirm payments, save to host history |
 
-After **due date**, unpaid balance triggers **email to host** (mock alert on dashboard).
+Router resumes incomplete setup if host opens the wrong step. After **due date**, unpaid balance triggers **email to host** (mock alert on dashboard).
 
 ### Member (no login)
 
 | Step | Route | Action |
 |------|-------|--------|
-| 1 | `/join/:token?room=:id` | Enter name |
+| 1 | `/join/:token?room=:id` or `/enter-room` | Enter name |
 | 2 | `/room/:id/assign` | Pick items *(skip if Equal)* |
 | 3 | `/room/:id/pay` | Pay + upload proof |
 | 4 | `/room/:id/done` | Wait for host confirm |

@@ -3,9 +3,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
+import NeoButton from '../components/ui/NeoButton.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
-import { HOST_STEPS } from '../constants/flows'
+import { HOST_STEPS, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,10 +17,18 @@ const { loadReceiptMock } = useRoomState()
 
 const started = ref(false)
 
+const scanning = computed(
+  () => room.value?.status === 'scanning' || room.value?.status === 'uploaded',
+)
+
 function runScan() {
   if (started.value) return
   started.value = true
   loadReceiptMock(roomId.value)
+}
+
+function goBack() {
+  router.push(hostBackRoute(roomId.value, 'scan'))
 }
 
 onMounted(runScan)
@@ -51,5 +61,11 @@ watch(
       <p class="mt-4 font-bold">OpenAI OCR pipeline (mock)</p>
       <p class="mt-1 text-sm text-neo-ink/70">Parsing line items → JSON</p>
     </NeoCard>
+
+    <FlowNavBar @back="goBack">
+      <NeoButton variant="primary" block disabled>
+        {{ scanning ? 'Scanning…' : 'Done' }}
+      </NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

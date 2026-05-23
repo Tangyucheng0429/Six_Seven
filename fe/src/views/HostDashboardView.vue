@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import InviteLinkBox from '../components/bill/InviteLinkBox.vue'
@@ -12,7 +13,7 @@ import MemberChip from '../components/bill/MemberChip.vue'
 import DueDateAlert from '../components/bill/DueDateAlert.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
-import { HOST_STEPS, hostStepIndex } from '../constants/flows'
+import { HOST_STEPS, hostStepIndex, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +37,10 @@ const step = computed(() => hostStepIndex(room.value?.status))
 function finish() {
   completeRoom(roomId.value)
   router.push('/history')
+}
+
+function goBack() {
+  router.push(hostBackRoute(roomId.value, 'dashboard'))
 }
 </script>
 
@@ -78,17 +83,20 @@ function finish() {
       @confirm="(id) => confirmPayment(room.id, id)"
     />
 
-    <NeoButton
-      v-if="allConfirmed"
-      class="mt-6 animate-neo-pop"
-      variant="primary"
-      block
-      @click="finish"
-    >
-      Save to history
-    </NeoButton>
-    <p v-else class="mt-4 text-center text-xs font-bold text-neo-ink/60">
+    <p v-if="!allConfirmed" class="mt-4 text-center text-xs font-bold text-neo-ink/60">
       Confirm all payments to complete the bill.
     </p>
+
+    <FlowNavBar @back="goBack">
+      <NeoButton
+        v-if="allConfirmed"
+        class="animate-neo-pop"
+        variant="primary"
+        block
+        @click="finish"
+      >
+        Save to history
+      </NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

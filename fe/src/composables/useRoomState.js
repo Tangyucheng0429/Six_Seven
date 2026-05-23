@@ -6,7 +6,9 @@ import {
   saveMyBill,
   getMyAccessList,
   getMyRoomsFromStorage,
+  getHostBills,
 } from './useMyBills'
+import { registerHostRoom } from './useHostCookie'
 
 const ROOM_KEY = Symbol('roomState')
 
@@ -19,6 +21,10 @@ const state = reactive({
 })
 
 hydrateRoomsFromStorage(state)
+
+export function getRoomById(id) {
+  return state.rooms[id] || null
+}
 
 function persist(room, roleOverride) {
   if (!room) return
@@ -64,12 +70,14 @@ export function useRoomStateProvider() {
     getRoom: (id) => state.rooms[id],
     getCompletedRooms: () => Object.values(state.rooms).filter((r) => r.status === 'completed'),
     getMyBills: () => getMyRoomsFromStorage(state),
+    getHostBills: () => getHostBills(state),
     getMyAccessList,
     createRoom: ({ name, hostName, hostEmail, dueDate }) => {
       const id = Math.random().toString(36).slice(2, 8)
       const room = createEmptyRoom({ id, name, hostName, hostEmail, dueDate })
       state.rooms[id] = room
       state.currentMemberId = 'host'
+      registerHostRoom(id)
       persist(room, 'host')
       return room
     },
@@ -78,21 +86,25 @@ export function useRoomStateProvider() {
       if (room) {
         room.receiptImageUrl = url
         room.status = 'uploaded'
+        persist(room, 'host')
       }
     },
     loadReceiptMock: (roomId) => {
       const room = state.rooms[roomId]
       if (!room) return
       room.status = 'scanning'
+      persist(room, 'host')
       setTimeout(() => {
         room.items = createMockReceiptItems()
         room.status = 'split_mode'
+        persist(room, 'host')
       }, 600)
     },
     setSplitMode: (roomId, mode) => {
       const room = state.rooms[roomId]
       if (!room) return
       room.splitMode = mode
+      persist(room, 'host')
       if (mode === 'equal') {
         room.items.forEach((item) => {
           item.assignedTo = []
@@ -102,7 +114,10 @@ export function useRoomStateProvider() {
     },
     confirmSplitMode: (roomId) => {
       const room = state.rooms[roomId]
-      if (room && room.splitMode) room.status = 'review'
+      if (room && room.splitMode) {
+        room.status = 'review'
+        persist(room, 'host')
+      }
     },
     updateItem: (roomId, itemId, patch) => {
       const room = state.rooms[roomId]
@@ -115,6 +130,7 @@ export function useRoomStateProvider() {
       if (room) {
         room.status = 'payment_setup'
         recalcAmounts(room)
+        persist(room, 'host')
       }
     },
     setPaymentMethod: (roomId, patch) => {
@@ -126,6 +142,7 @@ export function useRoomStateProvider() {
       if (room) {
         room.status = 'open'
         refreshDue(room)
+        persist(room, 'host')
       }
     },
     joinRoom: (roomId, memberName) => {
@@ -180,6 +197,7 @@ export function useRoomStateProvider() {
       if (room) {
         room.status = 'completed'
         room.completedAt = new Date().toISOString()
+        persist(room, 'host')
       }
     },
     recalcAmounts,

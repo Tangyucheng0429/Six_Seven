@@ -3,13 +3,14 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoInput from '../components/ui/NeoInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
-import { MEMBER_STEPS } from '../constants/flows'
+import { MEMBER_STEPS, staticBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +29,10 @@ function submit() {
     router.push(`/room/${roomId.value}/assign`)
   }
 }
+
+function goBack() {
+  router.push(staticBackRoute('join'))
+}
 </script>
 
 <template>
@@ -45,9 +50,12 @@ function submit() {
     </NeoCard>
     <p v-else class="font-bold text-neo-danger">Room not found.</p>
 
-    <form v-if="room" class="space-y-4" @submit.prevent="submit">
+    <form v-if="room" id="join-form" class="space-y-4" @submit.prevent="submit">
       <NeoInput id="name" v-model="name" label="Your name" placeholder="Ali" />
-      <NeoButton type="submit" variant="accent" block>Join room</NeoButton>
     </form>
+
+    <FlowNavBar v-if="room" @back="goBack">
+      <NeoButton type="submit" form="join-form" variant="accent" block>Join room</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

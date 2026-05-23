@@ -3,13 +3,14 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
 import PaymentMethodCard from '../components/bill/PaymentMethodCard.vue'
 import { useRoom, useRoomState, formatMYR } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
-import { MEMBER_STEPS } from '../constants/flows'
+import { MEMBER_STEPS, memberBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +32,16 @@ function submitPaid() {
   markPaid(roomId.value, member.value.id, proofPreview.value)
   router.push(`/room/${roomId.value}/done`)
 }
+
+function goBack() {
+  if (!room.value) return
+  router.push(
+    memberBackRoute(roomId.value, 'pay', {
+      splitMode: room.value.splitMode,
+      inviteToken: room.value.inviteToken,
+    }),
+  )
+}
 </script>
 
 <template>
@@ -50,16 +61,18 @@ function submitPaid() {
 
     <PaymentMethodCard :method="room.paymentMethod" />
 
-    <div class="mt-6 space-y-4">
-      <NeoFileUpload
-        label="Payment proof"
-        :preview-url="proofPreview"
-        @file="onProof"
-        @clear="proofPreview = null"
-      />
+    <NeoFileUpload
+      class="mt-6"
+      label="Payment proof"
+      :preview-url="proofPreview"
+      @file="onProof"
+      @clear="proofPreview = null"
+    />
+
+    <FlowNavBar @back="goBack">
       <NeoButton variant="primary" block :disabled="member.paid" @click="submitPaid">
         Mark as paid
       </NeoButton>
-    </div>
+    </FlowNavBar>
   </AppShell>
 </template>

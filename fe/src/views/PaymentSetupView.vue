@@ -3,11 +3,12 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoTextarea from '../components/ui/NeoTextarea.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
-import { HOST_STEPS } from '../constants/flows'
+import { HOST_STEPS, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,6 +42,10 @@ function publish() {
   openRoom(roomId.value)
   router.push(`/room/${roomId.value}`)
 }
+
+function goBack() {
+  router.push(hostBackRoute(roomId.value, 'payment-setup'))
+}
 </script>
 
 <template>
@@ -68,6 +73,8 @@ function publish() {
     <NeoFileUpload label="QR code (optional)" :preview-url="qrPreview" @file="onQr" @clear="qrPreview = null" />
     <NeoTextarea id="notes" v-model="notes" class="mt-4" label="Transfer notes" placeholder="Ref: FRIDAY — Jeff" />
 
-    <NeoButton class="mt-6" variant="accent" block @click="publish">Publish & get invite link</NeoButton>
+    <FlowNavBar @back="goBack">
+      <NeoButton variant="accent" block @click="publish">Publish & get invite link</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

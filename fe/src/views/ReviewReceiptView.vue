@@ -3,12 +3,13 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import ReceiptItemRow from '../components/bill/ReceiptItemRow.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
-import { HOST_STEPS } from '../constants/flows'
+import { HOST_STEPS, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +20,10 @@ const { updateItem, confirmReceipt } = useRoomState()
 function confirm() {
   confirmReceipt(roomId.value)
   router.push(`/room/${roomId.value}/payment-setup`)
+}
+
+function goBack() {
+  router.push(hostBackRoute(roomId.value, 'review'))
 }
 </script>
 
@@ -47,6 +52,8 @@ function confirm() {
       />
     </NeoCard>
 
-    <NeoButton class="mt-6" variant="primary" block @click="confirm">Confirm & set payment</NeoButton>
+    <FlowNavBar @back="goBack">
+      <NeoButton variant="primary" block @click="confirm">Confirm & set payment</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

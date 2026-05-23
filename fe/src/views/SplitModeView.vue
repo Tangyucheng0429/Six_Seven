@@ -3,11 +3,12 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import SplitModeToggle from '../components/bill/SplitModeToggle.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
-import { HOST_STEPS } from '../constants/flows'
+import { HOST_STEPS, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,10 @@ function next() {
   if (!room.value?.splitMode) setSplitMode(roomId.value, splitMode.value)
   confirmSplitMode(roomId.value)
   router.push(`/room/${roomId.value}/review`)
+}
+
+function goBack() {
+  router.push(hostBackRoute(roomId.value, 'split-mode'))
 }
 </script>
 
@@ -45,6 +50,8 @@ function next() {
       </p>
     </NeoCard>
 
-    <NeoButton class="mt-6" variant="primary" block @click="next">Continue to verify items</NeoButton>
+    <FlowNavBar @back="goBack">
+      <NeoButton variant="primary" block @click="next">Continue to verify items</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

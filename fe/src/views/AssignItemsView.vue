@@ -3,9 +3,10 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
+import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import { useRoom, useRoomState, formatMYR } from '../composables/useRoomState'
-import { MEMBER_STEPS } from '../constants/flows'
+import { MEMBER_STEPS, staticBackRoute } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +26,10 @@ function toggle(itemId) {
 
 function next() {
   router.push(`/room/${roomId.value}/pay`)
+}
+
+function goBack() {
+  router.push(staticBackRoute('assign'))
 }
 </script>
 
@@ -51,6 +56,8 @@ function next() {
       </li>
     </ul>
 
-    <NeoButton class="mt-6" variant="primary" block @click="next">See amount & pay</NeoButton>
+    <FlowNavBar @back="goBack">
+      <NeoButton variant="primary" block @click="next">See amount & pay</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>
