@@ -33,7 +33,8 @@ const route = useRoute()
 const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
-const { updateItem, removeItem, addItem, confirmReceipt, setEqualSplitSettings } = useRoomState()
+const { updateItem, removeItem, addItem, confirmReceipt, setEqualSplitSettings, setHostQuantity } =
+  useRoomState()
 const { shaking, hint, validate } = useFormValidation()
 const saving = ref(false)
 const saveError = ref('')
@@ -161,6 +162,7 @@ function goBack() {
         review
         :hide-host-split="isEqual"
         @update="(patch) => updateItem(room.id, item.id, patch)"
+        @set-host-qty="(qty) => setHostQuantity(room.id, item.id, qty)"
         @remove="removeItem(room.id, item.id)"
       />
       <p v-if="!menuItems.length" class="py-4 text-center text-sm font-bold text-neo-ink/60">
