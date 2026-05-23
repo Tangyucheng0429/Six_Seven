@@ -57,7 +57,7 @@ const menuLineCount = computed(() => billMenuLines(props.room).length)
 const showHostFoodDetails = computed(
   () => props.room?.splitMode === 'item' || hostFoodItems.value.length > 0,
 )
-const showMenuList = computed(() => isEqual.value && menuLineCount.value > 0)
+const showMenuList = computed(() => menuLineCount.value > 0)
 </script>
 
 <template>

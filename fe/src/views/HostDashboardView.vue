@@ -8,6 +8,7 @@ import NeoButton from '../components/ui/NeoButton.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import InviteLinkBox from '../components/bill/InviteLinkBox.vue'
 import AmountSummary from '../components/bill/AmountSummary.vue'
+import ReceiptPreviewCard from '../components/bill/ReceiptPreviewCard.vue'
 import PaymentProofList from '../components/bill/PaymentProofList.vue'
 import MemberChip from '../components/bill/MemberChip.vue'
 import DueDateAlert from '../components/bill/DueDateAlert.vue'
@@ -86,6 +87,13 @@ function goBack() {
     />
 
     <InviteLinkBox :room-code="room.roomCode || room.inviteToken" />
+
+    <ReceiptPreviewCard
+      v-if="room.receiptImageUrl"
+      class="mt-6"
+      :image-url="room.receiptImageUrl"
+      hint="Tap to view the original receipt photo."
+    />
 
     <AmountSummary class="mt-6" :room="room" :items="room.items" :members="room.members" />
 

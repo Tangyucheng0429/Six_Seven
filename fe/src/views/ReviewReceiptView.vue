@@ -12,6 +12,7 @@ import ReceiptItemRow from '../components/bill/ReceiptItemRow.vue'
 import TaxSettingsCard from '../components/bill/TaxSettingsCard.vue'
 import AddLineItemForm from '../components/bill/AddLineItemForm.vue'
 import EqualSplitSettingsCard from '../components/bill/EqualSplitSettingsCard.vue'
+import ReceiptPreviewCard from '../components/bill/ReceiptPreviewCard.vue'
 import {
   useRoom,
   useRoomState,
@@ -61,6 +62,7 @@ const menuBase = computed(() => (room.value ? billMenuBase(room.value) : 0))
 const scannedTax = computed(() => (room.value ? billScannedLineTax(room.value) : 0))
 const feesTotal = computed(() => (room.value ? billFeeLinesTotal(room.value) : 0))
 const subtotal = computed(() => (room.value ? billSubtotal(room.value) : 0))
+const receiptUrl = computed(() => room.value?.receiptImageUrl || null)
 
 function onAddItem(payload) {
   if (!room.value) return
@@ -117,6 +119,17 @@ function goBack() {
     </div>
 
     <ValidationAlert class="mb-4" :message="hint || saveError" :shake="shaking" />
+
+    <ReceiptPreviewCard
+      v-if="receiptUrl"
+      :image-url="receiptUrl"
+      label="Receipt photo"
+      :hint="
+        isEqual
+          ? 'Check the photo matches your scanned lines and totals.'
+          : 'Compare with each line — set You ate for what the host ordered.'
+      "
+    />
 
     <EqualSplitSettingsCard
       v-if="isEqual"

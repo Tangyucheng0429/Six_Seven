@@ -9,6 +9,7 @@ import NeoCard from '../components/ui/NeoCard.vue'
 import SplitModeToggle from '../components/bill/SplitModeToggle.vue'
 import EqualSplitSettingsCard from '../components/bill/EqualSplitSettingsCard.vue'
 import BillMenuList from '../components/bill/BillMenuList.vue'
+import ReceiptPreviewCard from '../components/bill/ReceiptPreviewCard.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { useFormValidation } from '../composables/useFormValidation'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
@@ -82,6 +83,13 @@ function goBack() {
       :host-participates="equalHostParticipates"
       @update:headcount="equalHeadcount = $event"
       @update:host-participates="equalHostParticipates = $event"
+    />
+
+    <ReceiptPreviewCard
+      v-if="room.receiptImageUrl"
+      class="mt-4"
+      :image-url="room.receiptImageUrl"
+      hint="Reference while you choose equal or by-item split."
     />
 
     <NeoCard v-if="hasMenu" class="mt-4">

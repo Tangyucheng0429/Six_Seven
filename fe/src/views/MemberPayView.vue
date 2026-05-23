@@ -8,6 +8,7 @@ import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import MemberPayBreakdown from '../components/bill/MemberPayBreakdown.vue'
+import ReceiptPreviewCard from '../components/bill/ReceiptPreviewCard.vue'
 import PaymentMethodCard from '../components/bill/PaymentMethodCard.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoomState } from '../composables/useRoomState'
@@ -135,6 +136,12 @@ function goBack() {
     </NeoBadge>
 
     <MemberPayBreakdown :room="room" :member-id="member.id" />
+
+    <ReceiptPreviewCard
+      v-if="room.receiptImageUrl && room.splitMode === 'item'"
+      :image-url="room.receiptImageUrl"
+      hint="Original receipt from host — compare with your items above."
+    />
 
     <PaymentMethodCard :method="room.paymentMethod" />
 
