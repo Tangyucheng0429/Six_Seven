@@ -20,7 +20,7 @@ export function formatDueDate(value) {
 
 export function unpaidTotal(room) {
   return (room?.members ?? [])
-    .filter((m) => !m.isHost && !m.confirmed)
+    .filter((m) => !m.isHost && !m.confirmed && !m.paid && !m.proofUrl)
     .reduce((sum, m) => sum + (m.amountDue || 0), 0)
 }
 

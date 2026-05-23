@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
 import FlowNavBar from '../components/layout/FlowNavBar.vue'
+import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
-import { MEMBER_STEPS, staticBackRoute } from '../constants/flows'
+import { shareInvite } from '../composables/useShareInvite'
+import { MEMBER_STEPS } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,8 +18,17 @@ const { state } = useRoomState()
 
 const member = computed(() => room.value?.members.find((m) => m.id === state.currentMemberId))
 
-function goBack() {
-  router.push(staticBackRoute('member-done'))
+async function share() {
+  if (!room.value) return
+  await shareInvite({
+    roomId: room.value.id,
+    inviteToken: room.value.inviteToken,
+    title: room.value.name,
+  })
+}
+
+function goHome() {
+  router.push('/')
 }
 </script>
 
@@ -31,6 +42,9 @@ function goBack() {
       <p class="mt-2 text-sm">Host will verify your proof on the dashboard.</p>
     </NeoCard>
 
-    <FlowNavBar @back="goBack" />
+    <FlowNavBar hide-back>
+      <NeoButton variant="secondary" block @click="share">Share</NeoButton>
+      <NeoButton variant="primary" block @click="goHome">Done</NeoButton>
+    </FlowNavBar>
   </AppShell>
 </template>

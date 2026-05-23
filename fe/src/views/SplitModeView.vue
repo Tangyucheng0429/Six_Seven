@@ -51,7 +51,7 @@ function goBack() {
     </NeoCard>
 
     <FlowNavBar @back="goBack">
-      <NeoButton variant="primary" block @click="next">Continue to verify items</NeoButton>
+      <NeoButton variant="primary" block @click="next">Continue</NeoButton>
     </FlowNavBar>
   </AppShell>
 </template>

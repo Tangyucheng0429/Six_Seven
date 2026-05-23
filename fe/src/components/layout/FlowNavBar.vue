@@ -1,10 +1,12 @@
 <script setup>
-import { computed, useSlots } from 'vue'
+import { Comment, computed, useSlots } from 'vue'
 import NeoButton from '../ui/NeoButton.vue'
 
 defineProps({
   backLabel: { type: String, default: 'Back' },
   backDisabled: { type: Boolean, default: false },
+  hideBack: { type: Boolean, default: false },
+  shakeContinue: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['back'])
@@ -17,17 +19,45 @@ const hasNext = computed(() => {
 </script>
 
 <template>
-  <div class="mt-6" :class="hasNext ? 'flex gap-3' : ''">
-    <NeoButton
-      :class="hasNext ? 'min-w-0 flex-1' : 'w-full'"
-      variant="ghost"
-      :disabled="backDisabled"
-      @click="emit('back')"
+  <div aria-hidden="true" class="h-28 shrink-0 sm:h-24" />
+  <div
+    class="fixed inset-x-0 bottom-0 z-10 border-t-3 border-neo-ink bg-neo-bg/90 px-4 py-4 backdrop-blur-sm neo-shadow"
+    style="padding-bottom: max(1rem, env(safe-area-inset-bottom))"
+  >
+    <div
+      class="mx-auto grid max-w-lg gap-3"
+      :class="hasNext ? 'grid-cols-2' : 'grid-cols-1'"
     >
-      {{ backLabel }}
-    </NeoButton>
-    <div v-if="hasNext" class="min-w-0 flex-1">
-      <slot />
+      <NeoButton
+        v-if="!hideBack"
+        block
+        class="min-h-12 min-w-0"
+        variant="ghost"
+        :disabled="backDisabled"
+        @click="emit('back')"
+      >
+        {{ backLabel }}
+      </NeoButton>
+      <div
+        v-if="hasNext"
+        class="flow-nav-slot min-w-0"
+        :class="[hideBack ? 'contents' : '', shakeContinue ? 'animate-neo-shake' : '']"
+      >
+        <slot />
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.flow-nav-slot :deep(button) {
+  width: 100%;
+  min-height: 3rem;
+  min-width: 0;
+}
+
+.flow-nav-slot.animate-neo-shake :deep(button) {
+  border-color: #ff3d3d;
+  animation: neo-shake 0.45s ease-in-out, neo-error-flash 0.5s ease-in-out 2;
+}
+</style>

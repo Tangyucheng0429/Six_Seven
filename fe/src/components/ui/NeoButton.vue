@@ -24,7 +24,7 @@ const variants = {
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="neo-pressable inline-flex items-center justify-center gap-2 border-3 px-5 py-3 text-sm font-bold uppercase tracking-wide neo-shadow disabled:cursor-not-allowed disabled:opacity-50"
+    class="neo-pressable inline-flex min-h-12 items-center justify-center gap-2 border-3 px-5 py-3 text-sm font-bold uppercase tracking-wide neo-shadow disabled:cursor-not-allowed disabled:opacity-50"
     :class="[variants[variant], block ? 'w-full' : '']"
   >
     <span

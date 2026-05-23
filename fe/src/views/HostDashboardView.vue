@@ -13,7 +13,8 @@ import MemberChip from '../components/bill/MemberChip.vue'
 import DueDateAlert from '../components/bill/DueDateAlert.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
-import { HOST_STEPS, hostStepIndex, hostBackRoute } from '../constants/flows'
+import { shareInvite } from '../composables/useShareInvite'
+import { HOST_STEPS, hostStepIndex } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,13 +35,28 @@ const allConfirmed = computed(() => {
 
 const step = computed(() => hostStepIndex(room.value?.status))
 
-function finish() {
-  completeRoom(roomId.value)
-  router.push('/history')
+const isFinished = computed(
+  () => room.value?.status === 'completed' || allConfirmed.value,
+)
+
+async function share() {
+  if (!room.value) return
+  await shareInvite({
+    roomId: room.value.id,
+    inviteToken: room.value.inviteToken,
+    title: room.value.name,
+  })
+}
+
+function goHome() {
+  if (room.value?.status !== 'completed') {
+    completeRoom(roomId.value)
+  }
+  router.push('/')
 }
 
 function goBack() {
-  router.push(hostBackRoute(roomId.value, 'dashboard'))
+  router.push('/')
 }
 </script>
 
@@ -70,11 +86,11 @@ function goBack() {
     <InviteLinkBox :room-id="room.id" :invite-token="room.inviteToken" />
 
     <div class="mt-6 space-y-2">
-      <p class="text-xs font-bold uppercase tracking-widest">Members</p>
+      <p class="neo-section-label">Members</p>
       <MemberChip v-for="m in room.members" :key="m.id" :member="m" />
     </div>
 
-    <AmountSummary class="mt-6" :items="room.items" :members="room.members" />
+    <AmountSummary class="mt-6" :room="room" :items="room.items" :members="room.members" />
 
     <PaymentProofList
       class="mt-6"
@@ -87,16 +103,12 @@ function goBack() {
       Confirm all payments to complete the bill.
     </p>
 
-    <FlowNavBar @back="goBack">
-      <NeoButton
-        v-if="allConfirmed"
-        class="animate-neo-pop"
-        variant="primary"
-        block
-        @click="finish"
-      >
-        Save to history
+    <FlowNavBar v-if="isFinished" hide-back>
+      <NeoButton variant="secondary" block @click="share">Share</NeoButton>
+      <NeoButton class="animate-neo-pop" variant="primary" block @click="goHome">
+        Done
       </NeoButton>
     </FlowNavBar>
+    <FlowNavBar v-else back-label="Home" @back="goBack" />
   </AppShell>
 </template>

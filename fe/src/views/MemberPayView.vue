@@ -8,8 +8,10 @@ import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
 import PaymentMethodCard from '../components/bill/PaymentMethodCard.vue'
+import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoom, useRoomState, formatMYR } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
+import { useFormValidation } from '../composables/useFormValidation'
 import { MEMBER_STEPS, memberBackRoute } from '../constants/flows'
 
 const route = useRoute()
@@ -17,6 +19,7 @@ const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
 const { markPaid, state } = useRoomState()
+const { shaking, hint, hasError, clearField, validate } = useFormValidation()
 
 const proofPreview = ref(null)
 const member = computed(() => room.value?.members.find((m) => m.id === state.currentMemberId))
@@ -25,10 +28,14 @@ const memberStep = computed(() => (room.value?.splitMode === 'equal' ? 1 : 2))
 
 function onProof({ previewUrl }) {
   proofPreview.value = previewUrl
+  clearField('proof')
 }
 
 function submitPaid() {
   if (!member.value) return
+  if (!validate([{ key: 'proof', valid: !!proofPreview.value, message: 'Upload payment proof' }])) {
+    return
+  }
   markPaid(roomId.value, member.value.id, proofPreview.value)
   router.push(`/room/${roomId.value}/done`)
 }
@@ -61,17 +68,22 @@ function goBack() {
 
     <PaymentMethodCard :method="room.paymentMethod" />
 
+    <ValidationAlert :message="hint" :shake="shaking" />
+
     <NeoFileUpload
       class="mt-6"
       label="Payment proof"
       :preview-url="proofPreview"
+      :error="hasError('proof')"
+      error-message="Upload payment proof"
+      :shake="hasError('proof') && shaking"
       @file="onProof"
       @clear="proofPreview = null"
     />
 
-    <FlowNavBar @back="goBack">
+    <FlowNavBar :shake-continue="shaking" @back="goBack">
       <NeoButton variant="primary" block :disabled="member.paid" @click="submitPaid">
-        Mark as paid
+        Continue
       </NeoButton>
     </FlowNavBar>
   </AppShell>

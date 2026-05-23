@@ -74,7 +74,7 @@ function goBack() {
     <NeoTextarea id="notes" v-model="notes" class="mt-4" label="Transfer notes" placeholder="Ref: FRIDAY — Jeff" />
 
     <FlowNavBar @back="goBack">
-      <NeoButton variant="accent" block @click="publish">Publish & get invite link</NeoButton>
+      <NeoButton variant="accent" block @click="publish">Continue</NeoButton>
     </FlowNavBar>
   </AppShell>
 </template>

@@ -7,8 +7,10 @@ import FlowNavBar from '../components/layout/FlowNavBar.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
+import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
+import { useFormValidation } from '../composables/useFormValidation'
 import { HOST_STEPS, hostBackRoute } from '../constants/flows'
 
 const route = useRoute()
@@ -16,12 +18,14 @@ const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
 const { setReceiptImage } = useRoomState()
+const { shaking, hint, hasError, fieldHint, clearField, validate } = useFormValidation()
 
 const preview = ref(room.value?.receiptImageUrl || null)
 
 function onFile({ previewUrl }) {
   preview.value = previewUrl
   setReceiptImage(roomId.value, previewUrl)
+  clearField('receipt')
 }
 
 function onClear() {
@@ -30,6 +34,9 @@ function onClear() {
 }
 
 function next() {
+  if (!validate([{ key: 'receipt', valid: !!preview.value, message: 'Upload a receipt image' }])) {
+    return
+  }
   router.push(`/room/${roomId.value}/scan`)
 }
 
@@ -47,17 +54,24 @@ function goBack() {
   >
     <FlowProgress :steps="HOST_STEPS" :current="1" />
 
-    <NeoFileUpload label="Receipt image" :preview-url="preview" @file="onFile" @clear="onClear" />
+    <ValidationAlert :message="hint" :shake="shaking" />
+    <NeoFileUpload
+      label="Receipt image"
+      :preview-url="preview"
+      :error="hasError('receipt')"
+      error-message="Upload a receipt image"
+      :shake="hasError('receipt') && shaking"
+      @file="onFile"
+      @clear="onClear"
+    />
 
     <NeoCard class="mt-4">
       <p class="text-xs font-bold uppercase">Next</p>
       <p class="mt-1 text-sm">OCR / AI will extract line items from Malaysian receipt formats.</p>
     </NeoCard>
 
-    <FlowNavBar @back="goBack">
-      <NeoButton variant="primary" block :disabled="!preview" @click="next">
-        Run OCR scan
-      </NeoButton>
+    <FlowNavBar :shake-continue="shaking" @back="goBack">
+      <NeoButton variant="primary" block @click="next">Continue</NeoButton>
     </FlowNavBar>
   </AppShell>
 </template>

@@ -24,7 +24,7 @@ const emit = defineEmits(['confirm'])
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <NeoBadge v-if="m.confirmed" variant="success">Confirmed</NeoBadge>
-        <NeoBadge v-else-if="m.paid" variant="warning">Awaiting host</NeoBadge>
+        <NeoBadge v-else-if="m.paid || m.proofUrl" variant="warning">Pending</NeoBadge>
         <NeoBadge v-else variant="danger">Unpaid</NeoBadge>
         <img
           v-if="m.proofUrl"
@@ -34,7 +34,7 @@ const emit = defineEmits(['confirm'])
         />
       </div>
       <NeoButton
-        v-if="isHost && m.paid && !m.confirmed"
+        v-if="isHost && (m.paid || m.proofUrl) && !m.confirmed"
         class="mt-3"
         variant="primary"
         block

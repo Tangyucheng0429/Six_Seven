@@ -44,7 +44,7 @@ export function hostRouteForStatus(roomId, status) {
     payment_setup: `/room/${id}/payment-setup`,
     open: `/room/${id}`,
     overdue: `/room/${id}`,
-    completed: '/history',
+    completed: `/room/${id}`,
   }
   return routes[status] ?? `/room/${id}/upload`
 }
@@ -91,7 +91,7 @@ export function hostBackRoute(roomId, routeName) {
     'split-mode': `/room/${id}/upload`,
     review: `/room/${id}/split-mode`,
     'payment-setup': `/room/${id}/review`,
-    dashboard: `/room/${id}/payment-setup`,
+    dashboard: '/',
   }
   return map[routeName] ?? '/'
 }

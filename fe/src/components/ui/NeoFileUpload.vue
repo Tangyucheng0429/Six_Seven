@@ -8,6 +8,9 @@ defineProps({
   label: { type: String, default: 'Upload file' },
   accept: { type: String, default: 'image/*' },
   previewUrl: { type: String, default: null },
+  error: { type: Boolean, default: false },
+  errorMessage: { type: String, default: '' },
+  shake: { type: Boolean, default: false },
 })
 
 const dragging = ref(false)
@@ -34,8 +37,13 @@ function clear() {
   <div class="flex flex-col gap-2">
     <NeoLabel>{{ label }}</NeoLabel>
     <div
-      class="relative flex min-h-40 cursor-pointer flex-col items-center justify-center border-3 border-dashed border-neo-ink bg-neo-surface p-6 text-center neo-shadow transition-colors"
-      :class="dragging ? 'bg-neo-primary' : ''"
+      class="relative flex min-h-40 cursor-pointer flex-col items-center justify-center border-3 border-dashed bg-neo-surface p-6 text-center neo-shadow transition-colors"
+      :class="[
+        dragging ? 'bg-neo-primary' : '',
+        error ? 'neo-field-invalid border-neo-danger' : 'border-neo-ink',
+        shake ? 'animate-neo-shake' : '',
+      ]"
+      :aria-invalid="error"
       @dragover.prevent="dragging = true"
       @dragleave="dragging = false"
       @drop.prevent="onDrop"
@@ -64,5 +72,6 @@ function clear() {
         <p class="text-xs text-neo-ink/60">PNG, JPG up to 10MB</p>
       </template>
     </div>
+    <p v-if="error && errorMessage" class="text-xs font-bold text-neo-danger">{{ errorMessage }}</p>
   </div>
 </template>

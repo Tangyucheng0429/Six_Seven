@@ -19,7 +19,7 @@ defineProps({
     <div v-if="showAmount && !member.isHost" class="flex items-center gap-2">
       <span class="font-mono text-sm font-bold">{{ formatMYR(member.amountDue) }}</span>
       <NeoBadge v-if="member.confirmed" variant="success">OK</NeoBadge>
-      <NeoBadge v-else-if="member.paid" variant="warning">Paid</NeoBadge>
+      <NeoBadge v-else-if="member.paid || member.proofUrl" variant="warning">Pending</NeoBadge>
       <NeoBadge v-else variant="default">Due</NeoBadge>
     </div>
   </div>

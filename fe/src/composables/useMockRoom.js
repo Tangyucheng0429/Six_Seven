@@ -1,11 +1,6 @@
-export function createMockReceiptItems() {
-  return [
-    { id: '1', name: 'Chicken Rice', price: 12.5, assignedTo: [] },
-    { id: '2', name: 'Teh Tarik', price: 3.5, assignedTo: [] },
-    { id: '3', name: 'Char Kuey Teow', price: 14.0, assignedTo: [] },
-    { id: '4', name: 'Service Charge', price: 2.0, assignedTo: [] },
-  ]
-}
+import { createMockReceiptItems } from './parseReceiptMock'
+
+export { createMockReceiptItems }
 
 export function createEmptyRoom({ id, name, hostName, hostEmail, dueDate }) {
   return {
@@ -31,6 +26,11 @@ export function createEmptyRoom({ id, name, hostName, hostEmail, dueDate }) {
         proofUrl: null,
       },
     ],
+    taxFromScan: false,
+    scannedSstRate: 0.06,
+    scannedServiceRate: 0.1,
+    taxEnabled: false,
+    taxRate: 0.06,
     paymentMethod: { type: 'duitnow', label: 'DuitNow QR', imageUrl: null, notes: '' },
     isOverdue: false,
     overdueEmailSent: false,
@@ -56,6 +56,9 @@ export function createDemoRoom() {
     }),
     status: 'open',
     splitMode: 'item',
+    taxFromScan: true,
+    scannedSstRate: 0.06,
+    scannedServiceRate: 0.1,
     items: createMockReceiptItems(),
     members: [
       { id: 'host', name: 'Jeff', isHost: true, amountDue: 0, paid: true, confirmed: true, proofUrl: null },

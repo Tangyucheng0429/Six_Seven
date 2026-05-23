@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
@@ -8,8 +8,10 @@ import NeoInput from '../components/ui/NeoInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
+import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
+import { useFormValidation, isFilled } from '../composables/useFormValidation'
 import { MEMBER_STEPS, staticBackRoute } from '../constants/flows'
 
 const route = useRoute()
@@ -17,11 +19,16 @@ const router = useRouter()
 const roomId = computed(() => route.query.room || 'demo01')
 const room = useRoom(roomId)
 const { joinRoom } = useRoomState()
+const { shaking, hint, hasError, fieldHint, clearField, validate } = useFormValidation()
 
 const name = ref('')
 
+watch(name, () => clearField('name'))
+
 function submit() {
-  if (!name.value.trim() || !room.value) return
+  if (!room.value) return
+  if (!validate([{ key: 'name', valid: isFilled(name.value) }])) return
+
   joinRoom(roomId.value, name.value.trim())
   if (room.value.splitMode === 'equal') {
     router.push(`/room/${roomId.value}/pay`)
@@ -51,11 +58,20 @@ function goBack() {
     <p v-else class="font-bold text-neo-danger">Room not found.</p>
 
     <form v-if="room" id="join-form" class="space-y-4" @submit.prevent="submit">
-      <NeoInput id="name" v-model="name" label="Your name" placeholder="Ali" />
+      <ValidationAlert :message="hint" :shake="shaking" />
+      <NeoInput
+        id="name"
+        v-model="name"
+        label="Your name"
+        placeholder="Ali"
+        :error="hasError('name')"
+        :error-message="fieldHint('name')"
+        :shake="hasError('name') && shaking"
+      />
     </form>
 
-    <FlowNavBar v-if="room" @back="goBack">
-      <NeoButton type="submit" form="join-form" variant="accent" block>Join room</NeoButton>
+    <FlowNavBar v-if="room" :shake-continue="shaking" @back="goBack">
+      <NeoButton type="submit" form="join-form" variant="accent" block>Continue</NeoButton>
     </FlowNavBar>
   </AppShell>
 </template>

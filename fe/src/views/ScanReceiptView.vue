@@ -59,12 +59,12 @@ watch(
         aria-hidden="true"
       />
       <p class="mt-4 font-bold">OpenAI OCR pipeline (mock)</p>
-      <p class="mt-1 text-sm text-neo-ink/70">Parsing line items → JSON</p>
+      <p class="mt-1 text-sm text-neo-ink/70">Items · SST per line · service charge</p>
     </NeoCard>
 
     <FlowNavBar @back="goBack">
       <NeoButton variant="primary" block disabled>
-        {{ scanning ? 'Scanning…' : 'Done' }}
+        {{ scanning ? 'Scanning…' : 'Continue' }}
       </NeoButton>
     </FlowNavBar>
   </AppShell>

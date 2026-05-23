@@ -8,7 +8,7 @@ defineProps({
 <template>
   <div
     class="border-3 border-neo-ink bg-neo-surface neo-shadow"
-    :class="[padding ? 'p-4' : '', accent ? 'bg-neo-primary' : '']"
+    :class="[padding ? 'p-3 sm:p-4' : '', accent ? 'bg-neo-primary' : '']"
   >
     <slot />
   </div>
