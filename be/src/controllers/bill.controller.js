@@ -14,11 +14,23 @@ export async function configSplit(req, res) {
     return res.status(400).json({ error: 'Missing required parameters: room_id, split_mode, payment_method_type' });
   }
 
+  // 1. Validation of ENUM parameters
+  const validSplitModes = ['EQUAL', 'ITEM_BASED'];
+  const validPaymentTypes = ['DUITNOW_QR', 'BANK_TRANSFER', 'TNG_QR'];
+
+  if (!validSplitModes.includes(split_mode)) {
+    return res.status(400).json({ error: 'Invalid split_mode. Must be EQUAL or ITEM_BASED.' });
+  }
+
+  if (!validPaymentTypes.includes(payment_method_type)) {
+    return res.status(400).json({ error: 'Invalid payment_method_type. Must be DUITNOW_QR, BANK_TRANSFER, or TNG_QR.' });
+  }
+
   try {
-    // 1. Confirm room exists
+    // 2. Fetch room details and verify active status
     const { data: room, error: roomError } = await supabaseAdmin
       .from('bill_rooms')
-      .select('room_id')
+      .select('room_id, status, host_id')
       .eq('room_id', room_id)
       .maybeSingle();
 
@@ -26,19 +38,25 @@ export async function configSplit(req, res) {
       return res.status(404).json({ error: 'Room not found.' });
     }
 
+    if (room.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'This room has already been closed.' });
+    }
+
+    // 3. Host Identity Verification (Authorization Lock)
+    const requestUserId = req.user?.id;
+    if (!requestUserId || room.host_id !== requestUserId) {
+      return res.status(403).json({ error: 'Forbidden: Only the room host can configure split settings.' });
+    }
+
     let qrCodeUrl = null;
 
-    // 2. If a QR code is uploaded, save it to Storage bucket 'payment_methods'
+    // 4. File Upload (Vercel-safe and optimized, bypassing dynamic bucket creation)
     if (qrCodeFile) {
-      await supabaseAdmin.storage.createBucket('payment_methods', { public: true }).catch(() => {
-        // fail silently if bucket exists
-      });
-      
-      const fileExt = qrCodeFile.originalname.split('.').pop();
+      const fileExt = qrCodeFile.originalname.split('.').pop() || 'png';
       const fileName = `${room_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { error: uploadError } = await supabaseAdmin.storage
-        .from('payment_methods')
+        .from('qrcodes')
         .upload(fileName, qrCodeFile.buffer, {
           contentType: qrCodeFile.mimetype,
           upsert: true
@@ -50,17 +68,17 @@ export async function configSplit(req, res) {
       }
 
       const { data: { publicUrl } } = supabaseAdmin.storage
-        .from('payment_methods')
+        .from('qrcodes')
         .getPublicUrl(fileName);
 
       qrCodeUrl = publicUrl;
     }
 
-    // 3. Update room details
+    // 5. Update room settings
     const updateData = {
       split_mode,
       payment_method_type,
-      payment_method_detail
+      payment_method_detail: payment_method_detail?.trim() || null
     };
 
     if (qrCodeUrl) {
@@ -77,10 +95,13 @@ export async function configSplit(req, res) {
       return res.status(500).json({ error: `Failed to configure split settings: ${updateError.message}` });
     }
 
-    // 4. Trigger recalculation (split mode change dynamically recalcs amounts)
+    // 6. Recalculate billing
     await calculateBill(room_id);
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      success: true,
+      message: 'Split settings configured successfully.'
+    });
   } catch (error) {
     console.error('[Bill Controller] Config Split Exception:', error);
     return res.status(500).json({ error: 'An internal server error occurred.' });
