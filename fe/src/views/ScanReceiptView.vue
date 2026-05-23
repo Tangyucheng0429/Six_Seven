@@ -90,8 +90,8 @@ watch(roomId, async (id) => {
         aria-hidden="true"
       />
       <p v-if="scanError" class="mt-4 text-center font-bold text-neo-danger">{{ scanError }}</p>
-      <p v-else class="mt-4 font-bold">OpenAI OCR pipeline</p>
-      <p class="mt-1 text-sm text-neo-ink/70">Items · SST per line · service charge</p>
+      <p v-else class="mt-4 font-bold">Scanning your receipt…</p>
+      <p class="mt-1 text-sm text-neo-ink/70">Reading items and totals from your photo.</p>
     </NeoCard>
 
     <FlowNavBar @back="goBack">
