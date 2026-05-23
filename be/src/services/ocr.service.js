@@ -65,7 +65,59 @@ Do not include any explanations, markdown code blocks, or additional text. Just 
           ]
         }
       ],
-      response_format: { type: 'json_object' }
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'malaysian_receipt_scan',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              subtotal: {
+                type: 'number',
+                description: 'The sum of all item prices before service charge, tax, or rounding.'
+              },
+              tax_amount: {
+                type: 'number',
+                description: 'SST / Service Tax / Government Tax (typically 6% in Malaysia).'
+              },
+              service_charge: {
+                type: 'number',
+                description: 'Service Charge (typically 10% in Malaysia).'
+              },
+              total_amount: {
+                type: 'number',
+                description: 'The absolute final amount paid on the receipt, after tax, service charge, and any rounding.'
+              },
+              items: {
+                type: 'array',
+                description: 'List of food/drink items purchased.',
+                items: {
+                  type: 'object',
+                  properties: {
+                    item_name: {
+                      type: 'string',
+                      description: 'Standardized readable name of the item.'
+                    },
+                    price: {
+                      type: 'number',
+                      description: 'Unit price of one item.'
+                    },
+                    quantity: {
+                      type: 'integer',
+                      description: 'Count of items.'
+                    }
+                  },
+                  required: ['item_name', 'price', 'quantity'],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ['subtotal', 'tax_amount', 'service_charge', 'total_amount', 'items'],
+            additionalProperties: false
+          }
+        }
+      }
     });
 
     const parsedData = JSON.parse(response.choices[0].message.content);

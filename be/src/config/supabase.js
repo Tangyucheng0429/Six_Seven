@@ -8,9 +8,15 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  if (process.env.NODE_ENV !== 'test') {
-    console.warn('Warning: Supabase credentials are not fully configured in your .env file.');
+if (process.env.NODE_ENV !== 'test') {
+  if (!supabaseUrl) {
+    throw new Error('CRITICAL CONFIG ERROR: SUPABASE_URL is missing in your .env file.');
+  }
+  if (!supabaseAnonKey) {
+    throw new Error('CRITICAL CONFIG ERROR: SUPABASE_ANON_KEY is missing in your .env file.');
+  }
+  if (!supabaseServiceKey) {
+    throw new Error('CRITICAL CONFIG ERROR: SUPABASE_SERVICE_ROLE_KEY is missing in your .env file.');
   }
 }
 

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "test:db": "node src/tests/testConnection.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.4",

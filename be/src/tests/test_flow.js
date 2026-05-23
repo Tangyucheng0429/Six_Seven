@@ -1,11 +1,11 @@
 /**
  * Six 7 Bill Splitter - Math Calculation & Precision Test Runner
- * Path: scratch/test_flow.js
+ * Path: src/tests/test_flow.js
  * Run this file using Node.js to verify the mathematical accuracy, Malaysian sen precision matching,
  * and subtraction-based Host rounding error absorption.
  */
 
-import { roundToTwoDecimals } from '../src/utils/helpers.js';
+import { roundToTwoDecimals } from '../utils/helpers.js';
 
 // -------------------------------------------------------------
 // Test Case 1: EQUAL Split (Rounding discrepancy check)

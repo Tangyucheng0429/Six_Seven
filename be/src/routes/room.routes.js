@@ -4,8 +4,8 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// Protected room routes
-router.post('/create', requireAuth, createRoom);
+// Room routes
+router.post('/create', createRoom);
 router.post('/join', requireAuth, joinRoom);
 
 export default router;

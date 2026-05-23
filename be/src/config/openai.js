@@ -6,8 +6,10 @@ dotenv.config();
 
 const apiKey = process.env.OPENAI_API_KEY;
 
-if (!apiKey && process.env.NODE_ENV !== 'test') {
-  console.warn('Warning: OpenAI API Key is not configured in your .env file.');
+if (process.env.NODE_ENV !== 'test') {
+  if (!apiKey) {
+    throw new Error('CRITICAL CONFIG ERROR: OPENAI_API_KEY is missing in your .env file.');
+  }
 }
 
 export const openai = process.env.NODE_ENV === 'test'

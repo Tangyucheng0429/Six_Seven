@@ -10,7 +10,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Dynamic origin matching to support Cookie-based credentials in both local dev and production
+    const allowed = process.env.FRONTEND_URL || origin || true;
+    callback(null, allowed);
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

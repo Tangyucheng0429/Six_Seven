@@ -1,6 +1,6 @@
 /**
  * Six 7 Bill Splitter - Complete Local Integration Test Suite
- * Path: scratch/test_integration.js
+ * Path: src/tests/test_integration.js
  *
  * This test suite:
  * 1. Configures the test environment (NODE_ENV=test) to trigger custom mock database + OpenAI layers.
@@ -15,8 +15,8 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3001';
 
-const { default: app } = await import('../src/app.js');
-const { db, resetDb } = await import('../src/config/supabase.mock.js');
+const { default: app } = await import('../app.js');
+const { db, resetDb } = await import('../config/supabase.mock.js');
 
 
 // Setup local server base URL
@@ -402,11 +402,12 @@ async function runTests() {
 
   } catch (error) {
     console.error('\n❌ INTEGRATION TEST FAILED:', error);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   // Gracefully terminate the process
-  process.exit(0);
+  process.exitCode = 0;
 }
 
 runTests();

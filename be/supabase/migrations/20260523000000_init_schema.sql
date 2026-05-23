@@ -81,55 +81,71 @@ ALTER TABLE public.participant_bills ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies Setup
 
+-- Security Definer Helpers to prevent infinite recursion in RLS policies
+CREATE OR REPLACE FUNCTION public.is_room_member(p_room_id UUID, p_user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.participant_bills
+        WHERE room_id = p_room_id AND user_id = p_user_id
+    ) OR EXISTS (
+        SELECT 1 FROM public.bill_rooms
+        WHERE room_id = p_room_id AND host_id = p_user_id
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.share_room(p_user_id_1 UUID, p_user_id_2 UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.participant_bills pb1
+        JOIN public.participant_bills pb2 ON pb1.room_id = pb2.room_id
+        WHERE pb1.user_id = p_user_id_1 AND pb2.user_id = p_user_id_2
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Users policies
+DROP POLICY IF EXISTS "Users are readable by themselves or room members" ON public.users;
 CREATE POLICY "Users are readable by themselves or room members" ON public.users
     FOR SELECT USING (
         auth.uid() = user_id OR 
-        EXISTS (
-            SELECT 1 FROM public.participant_bills pb 
-            WHERE pb.user_id = users.user_id AND pb.room_id IN (
-                SELECT room_id FROM public.participant_bills WHERE user_id = auth.uid()
-            )
-        )
+        public.share_room(user_id, auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can create their own profile" ON public.users;
 CREATE POLICY "Users can create their own profile" ON public.users
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
 CREATE POLICY "Users can update their own profile" ON public.users
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- BillRooms policies
+DROP POLICY IF EXISTS "Rooms are readable by host or joined participants" ON public.bill_rooms;
 CREATE POLICY "Rooms are readable by host or joined participants" ON public.bill_rooms
     FOR SELECT USING (
         host_id = auth.uid() OR 
-        EXISTS (
-            SELECT 1 FROM public.participant_bills pb 
-            WHERE pb.room_id = bill_rooms.room_id AND pb.user_id = auth.uid()
-        )
+        public.is_room_member(room_id, auth.uid())
     );
 
+DROP POLICY IF EXISTS "Rooms can be created by authenticated/anonymous hosts" ON public.bill_rooms;
 CREATE POLICY "Rooms can be created by authenticated/anonymous hosts" ON public.bill_rooms
     FOR INSERT WITH CHECK (host_id = auth.uid());
 
+DROP POLICY IF EXISTS "Rooms can be modified by the host" ON public.bill_rooms;
 CREATE POLICY "Rooms can be modified by the host" ON public.bill_rooms
     FOR UPDATE USING (host_id = auth.uid());
 
 -- Receipts policies
+DROP POLICY IF EXISTS "Receipts are viewable by host or room participants" ON public.receipts;
 CREATE POLICY "Receipts are viewable by host or room participants" ON public.receipts
     FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.bill_rooms br 
-            WHERE br.room_id = receipts.room_id AND (
-                br.host_id = auth.uid() OR 
-                EXISTS (
-                    SELECT 1 FROM public.participant_bills pb 
-                    WHERE pb.room_id = br.room_id AND pb.user_id = auth.uid()
-                )
-            )
-        )
+        public.is_room_member(room_id, auth.uid())
     );
 
+DROP POLICY IF EXISTS "Receipts can be managed by the host" ON public.receipts;
 CREATE POLICY "Receipts can be managed by the host" ON public.receipts
     FOR ALL USING (
         EXISTS (
@@ -139,21 +155,17 @@ CREATE POLICY "Receipts can be managed by the host" ON public.receipts
     );
 
 -- ReceiptItems policies
+DROP POLICY IF EXISTS "Receipt items are viewable by host or room participants" ON public.receipt_items;
 CREATE POLICY "Receipt items are viewable by host or room participants" ON public.receipt_items
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.receipts r 
-            JOIN public.bill_rooms br ON r.room_id = br.room_id
-            WHERE r.receipt_id = receipt_items.receipt_id AND (
-                br.host_id = auth.uid() OR 
-                EXISTS (
-                    SELECT 1 FROM public.participant_bills pb 
-                    WHERE pb.room_id = br.room_id AND pb.user_id = auth.uid()
-                )
-            )
+            WHERE r.receipt_id = receipt_items.receipt_id AND 
+            public.is_room_member(r.room_id, auth.uid())
         )
     );
 
+DROP POLICY IF EXISTS "Receipt items can be managed by the host" ON public.receipt_items;
 CREATE POLICY "Receipt items can be managed by the host" ON public.receipt_items
     FOR ALL USING (
         EXISTS (
@@ -164,47 +176,38 @@ CREATE POLICY "Receipt items can be managed by the host" ON public.receipt_items
     );
 
 -- ItemAssignments policies
+DROP POLICY IF EXISTS "Item assignments are viewable by host or room participants" ON public.item_assignments;
 CREATE POLICY "Item assignments are viewable by host or room participants" ON public.item_assignments
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.receipt_items ri 
             JOIN public.receipts r ON ri.receipt_id = r.receipt_id
-            JOIN public.bill_rooms br ON r.room_id = br.room_id
-            WHERE ri.item_id = item_assignments.item_id AND (
-                br.host_id = auth.uid() OR 
-                EXISTS (
-                    SELECT 1 FROM public.participant_bills pb 
-                    WHERE pb.room_id = br.room_id AND pb.user_id = auth.uid()
-                )
-            )
+            WHERE ri.item_id = item_assignments.item_id AND 
+            public.is_room_member(r.room_id, auth.uid())
         )
     );
 
+DROP POLICY IF EXISTS "Item assignments can be created by the participant themselves" ON public.item_assignments;
 CREATE POLICY "Item assignments can be created by the participant themselves" ON public.item_assignments
     FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Item assignments can be deleted by the participant themselves" ON public.item_assignments;
 CREATE POLICY "Item assignments can be deleted by the participant themselves" ON public.item_assignments
     FOR DELETE USING (user_id = auth.uid());
 
 -- ParticipantBills policies
+DROP POLICY IF EXISTS "Participant bills are viewable by host or room participants" ON public.participant_bills;
 CREATE POLICY "Participant bills are viewable by host or room participants" ON public.participant_bills
     FOR SELECT USING (
         user_id = auth.uid() OR 
-        EXISTS (
-            SELECT 1 FROM public.bill_rooms br 
-            WHERE br.room_id = participant_bills.room_id AND (
-                br.host_id = auth.uid() OR 
-                EXISTS (
-                    SELECT 1 FROM public.participant_bills pb 
-                    WHERE pb.room_id = br.room_id AND pb.user_id = auth.uid()
-                )
-            )
-        )
+        public.is_room_member(room_id, auth.uid())
     );
 
+DROP POLICY IF EXISTS "Participant bills can be created by the participant themselves" ON public.participant_bills;
 CREATE POLICY "Participant bills can be created by the participant themselves" ON public.participant_bills
     FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Participant bills can be updated by the participant or host" ON public.participant_bills;
 CREATE POLICY "Participant bills can be updated by the participant or host" ON public.participant_bills
     FOR UPDATE USING (
         user_id = auth.uid() OR 
