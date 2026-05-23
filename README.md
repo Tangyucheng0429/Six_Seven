@@ -272,8 +272,7 @@ Scripts under `be/src/tests/`:
 - `test_real_ocr.js` — calls real OpenAI with a sample image
 
 ## AI Tools Used
-- **ChatGPT** — planning, scaffolding, and development assistance
-- **OpenAI GPT-4o** (Structured Outputs) — production receipt OCR engine
+- **CURSOR** 
 
 ## Team
 **Team Name:** Six Seven

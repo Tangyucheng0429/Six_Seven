@@ -3,7 +3,7 @@ const model = defineModel({ type: String, default: 'item' })
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-3">
+  <div class="mb-4 grid grid-cols-2 gap-3">
     <button
       type="button"
       class="neo-pressable border-3 border-neo-ink p-4 text-left neo-shadow"

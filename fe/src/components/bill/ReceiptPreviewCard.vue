@@ -2,6 +2,8 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import NeoCard from '../ui/NeoCard.vue'
 
+defineOptions({ inheritAttrs: false })
+
 defineProps({
   imageUrl: { type: String, required: true },
   label: { type: String, default: 'Receipt from host' },
@@ -30,8 +32,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <NeoCard class="mb-4">
-    <p class="neo-section-label mb-2">{{ label }}</p>
+  <div class="mb-4" v-bind="$attrs">
+    <NeoCard>
+      <p class="neo-section-label mb-2">{{ label }}</p>
     <p class="mb-3 text-xs font-medium text-neo-ink/70">{{ hint }}</p>
     <button
       type="button"
@@ -47,7 +50,8 @@ onUnmounted(() => {
         View receipt
       </span>
     </button>
-  </NeoCard>
+    </NeoCard>
+  </div>
 
   <Teleport to="body">
     <div
