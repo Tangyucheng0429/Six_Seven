@@ -6,6 +6,7 @@ const router = Router();
 
 // Room routes
 router.post('/create', createRoom);
-router.post('/join', requireAuth, joinRoom);
+router.post('/join', joinRoom);
+
 
 export default router;

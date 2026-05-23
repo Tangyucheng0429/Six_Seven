@@ -222,10 +222,12 @@ DO $$
 BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.bill_rooms;
     ALTER PUBLICATION supabase_realtime ADD TABLE public.participant_bills;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.item_assignments;
 EXCEPTION
     WHEN OTHERS THEN
         NULL;
 END $$;
+
 
 -- Dynamic Bill Calculation Database Function
 -- Implements highly parallelizable room calculation with row level locking (FOR UPDATE)

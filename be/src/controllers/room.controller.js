@@ -197,7 +197,6 @@ export async function createRoom(req, res) {
  */
 export async function joinRoom(req, res) {
   const { room_code, nickname } = req.body;
-  const userId = req.user.id; // from requireAuth middleware
 
   if (!room_code || !nickname) {
     return res.status(400).json({ error: 'Missing required parameters: room_code, nickname' });
@@ -219,11 +218,54 @@ export async function joinRoom(req, res) {
       return res.status(400).json({ error: 'This room has already been closed.' });
     }
 
-    const isHost = room.host_id === userId;
+    // 2. Resolve Guest Identity (Bearer auth OR Cookies check OR register a new anonymous user profile)
+    let resolvedUserId = null;
 
-    // 2. Upsert participant user profile
+    // A. Check req.user from optional authentication layer if present
+    if (req.user && req.user.id) {
+      resolvedUserId = req.user.id;
+    }
+
+    // B. Check Bearer Authorization header
+    if (!resolvedUserId && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      const token = req.headers.authorization.split(' ')[1];
+      try {
+        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+        if (!error && user) {
+          resolvedUserId = user.id;
+        }
+      } catch (err) {
+        console.error('[Room Controller] Bearer token retrieval failed in join:', err);
+      }
+    }
+
+    // C. Check Cookies (user_id or host_id)
+    if (!resolvedUserId) {
+      const cookieUserId = getCookie(req, 'user_id') || getCookie(req, 'host_id');
+      if (cookieUserId) {
+        resolvedUserId = cookieUserId;
+      }
+    }
+
+    // D. If still not resolved, register a new anonymous account in auth.users
+    if (!resolvedUserId) {
+      const { data: { user: newAuthUser }, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email_confirm: true,
+        user_metadata: { nickname: nickname.trim() }
+      });
+
+      if (createAuthError || !newAuthUser) {
+        console.error('[Room Controller] Anonymous participant auth user creation failed:', createAuthError);
+        return res.status(500).json({ error: `Failed to create anonymous session: ${createAuthError?.message || 'Unknown'}` });
+      }
+      resolvedUserId = newAuthUser.id;
+    }
+
+    const isHost = room.host_id === resolvedUserId;
+
+    // 3. Upsert participant user profile in public users table
     const { error: userError } = await supabaseAdmin.from('users').upsert({
-      user_id: userId,
+      user_id: resolvedUserId,
       nickname: nickname.trim(),
       is_host: isHost
     });
@@ -233,10 +275,10 @@ export async function joinRoom(req, res) {
       return res.status(500).json({ error: `Failed to register participant: ${userError.message}` });
     }
 
-    // 3. Register user to room by creating record in participant_bills (Host is verified by default)
+    // 4. Register user to room by creating record in participant_bills (Host is verified by default)
     const { error: pbError } = await supabaseAdmin.from('participant_bills').upsert({
       room_id: room.room_id,
-      user_id: userId,
+      user_id: resolvedUserId,
       amount_to_pay: 0.00,
       payment_status: isHost ? 'VERIFIED' : 'PENDING'
     }, {
@@ -248,13 +290,21 @@ export async function joinRoom(req, res) {
       return res.status(500).json({ error: `Failed to join room: ${pbError.message}` });
     }
 
-    // 4. Trigger dynamic bill recalculation immediately (Equal mode re-split or item updates)
+    // 5. Set user_id Cookie in Response (dynamically configured secure/sameSite for local dev)
+    res.cookie('user_id', resolvedUserId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    // 6. Trigger dynamic bill recalculation immediately (Equal mode re-split or item updates)
     await calculateBill(room.room_id);
 
     return res.status(200).json({
       success: true,
       room_id: room.room_id,
-      user_id: userId
+      user_id: resolvedUserId
     });
   } catch (error) {
     console.error('[Room Controller] Join Room Exception:', error);

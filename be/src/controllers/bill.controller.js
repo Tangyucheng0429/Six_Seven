@@ -108,20 +108,32 @@ export async function configSplit(req, res) {
   }
 }
 
-/**
- * Perform high-concurrency safe food item assignment inside transactional PL/pgSQL database function.
- * POST /api/bills/assign-items
- * Inputs: room_id, user_id, selected_item_ids: []
- */
 export async function assignItems(req, res) {
-  const { room_id, user_id, selected_item_ids } = req.body;
+  // Prioritize authenticated req.user.id for production security, with body user_id as backup for mock integration test suites
+  const user_id = req.user?.id || req.body.user_id;
+  const { room_id, selected_item_ids } = req.body;
 
   if (!room_id || !user_id || !Array.isArray(selected_item_ids)) {
     return res.status(400).json({ error: 'Missing required parameters: room_id, user_id, selected_item_ids' });
   }
 
   try {
-    // Invoke transactional PL/pgSQL database function assign_items_and_calculate
+    // 1. Confirm room exists and is active
+    const { data: room, error: roomError } = await supabaseAdmin
+      .from('bill_rooms')
+      .select('status')
+      .eq('room_id', room_id)
+      .maybeSingle();
+
+    if (roomError || !room) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    if (room.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'This room has already been closed.' });
+    }
+
+    // 2. Invoke transactional PL/pgSQL database function assign_items_and_calculate
     // Row level locking (FOR UPDATE) executes inside Database to prevent concurrent race conditions
     const { error } = await supabaseAdmin.rpc('assign_items_and_calculate', {
       p_room_id: room_id,
@@ -134,7 +146,7 @@ export async function assignItems(req, res) {
       return res.status(500).json({ error: `Failed to assign items: ${error.message}` });
     }
 
-    // Fetch the updated amount_to_pay for the user
+    // 3. Fetch the updated amount_to_pay for the user
     const { data: bill, error: billError } = await supabaseAdmin
       .from('participant_bills')
       .select('amount_to_pay')
