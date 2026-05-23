@@ -18,6 +18,8 @@ import {
   useRoomState,
   formatMYR,
   billSubtotal,
+  billHostTotal,
+  billMemberPool,
   billMenuBase,
   billScannedLineTax,
   billFeeLinesTotal,
@@ -63,6 +65,8 @@ const menuBase = computed(() => (room.value ? billMenuBase(room.value) : 0))
 const scannedTax = computed(() => (room.value ? billScannedLineTax(room.value) : 0))
 const feesTotal = computed(() => (room.value ? billFeeLinesTotal(room.value) : 0))
 const subtotal = computed(() => (room.value ? billSubtotal(room.value) : 0))
+const hostShare = computed(() => (room.value ? billHostTotal(room.value) : 0))
+const membersPay = computed(() => (room.value ? billMemberPool(room.value) : 0))
 const receiptUrl = computed(() => room.value?.receiptImageUrl || null)
 
 function onAddItem(payload) {
@@ -211,10 +215,19 @@ function goBack() {
             <span class="font-mono">{{ formatMYR(equalShare) }}</span>
           </div>
         </template>
-        <div v-else class="flex justify-between font-bold">
-          <span>Bill total to split</span>
-          <span class="font-mono">{{ formatMYR(subtotal) }}</span>
-        </div>
+        <template v-else>
+          <div v-if="hostShare > 0" class="flex justify-between text-sm">
+            <span>Your share (host)</span>
+            <span class="font-mono">− {{ formatMYR(hostShare) }}</span>
+          </div>
+          <div class="mt-2 flex justify-between font-bold">
+            <span>Members split</span>
+            <span class="font-mono">{{ formatMYR(membersPay) }}</span>
+          </div>
+          <p v-if="hostShare > 0" class="mt-1 text-xs font-medium text-neo-ink/70">
+            Bill total {{ formatMYR(subtotal) }} − your items {{ formatMYR(hostShare) }}
+          </p>
+        </template>
       </div>
     </NeoCard>
 
