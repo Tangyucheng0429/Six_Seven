@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { calculateBill } from '../services/calc.service.js';
+import { ensurePublicBucket } from '../utils/storageBuckets.js';
 
 /**
  * Configure split settings and payment methods.
@@ -50,8 +51,10 @@ export async function configSplit(req, res) {
 
     let qrCodeUrl = null;
 
-    // 4. File Upload (Vercel-safe and optimized, bypassing dynamic bucket creation)
+    // 4. Upload host QR to Supabase Storage → bill_rooms.qr_code_url
     if (qrCodeFile) {
+      await ensurePublicBucket('qrcodes');
+
       const fileExt = qrCodeFile.originalname.split('.').pop() || 'png';
       const fileName = `${room_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 

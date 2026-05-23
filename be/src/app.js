@@ -8,13 +8,20 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
+const frontendOrigin = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+
 app.use(cors({
-  origin: (origin, callback) => {
-    // Dynamic origin matching to support Cookie-based credentials in both local dev and production
-    const allowed = process.env.FRONTEND_URL || origin || true;
-    callback(null, allowed);
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, frontendOrigin || true);
+    }
+    const normalized = origin.replace(/\/$/, '');
+    if (!frontendOrigin || normalized === frontendOrigin) {
+      return callback(null, origin);
+    }
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

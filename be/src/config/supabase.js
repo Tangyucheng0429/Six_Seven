@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import dotenv from 'dotenv';
 import { mockSupabase, mockSupabaseAdmin } from './supabase.mock.js';
+
+const realtimeOptions = { realtime: { transport: ws } };
 
 dotenv.config();
 
@@ -30,7 +33,8 @@ export const supabase = process.env.NODE_ENV === 'test'
   ? mockSupabase
   : createClient(
       supabaseUrl || 'https://placeholder.supabase.co',
-      supabaseAnonKey || 'placeholder'
+      supabaseAnonKey || 'placeholder',
+      realtimeOptions,
     );
 
 export const supabaseAdmin = process.env.NODE_ENV === 'test'
@@ -41,8 +45,9 @@ export const supabaseAdmin = process.env.NODE_ENV === 'test'
       {
         auth: {
           persistSession: false,
-          autoRefreshToken: false
-        }
-      }
+          autoRefreshToken: false,
+        },
+        ...realtimeOptions,
+      },
     );
 

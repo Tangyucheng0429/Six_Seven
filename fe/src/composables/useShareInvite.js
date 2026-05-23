@@ -1,3 +1,5 @@
+import { copyToClipboard } from '../utils/copyToClipboard.js'
+
 export function inviteLink(roomCode) {
   const code = String(roomCode || '').trim().toUpperCase()
   return `${window.location.origin}/join/${code}`
@@ -13,5 +15,5 @@ export async function shareInvite({ roomCode, title = 'SixSeven bill' }) {
       if (err?.name === 'AbortError') return
     }
   }
-  await navigator.clipboard.writeText(url)
+  await copyToClipboard(url)
 }

@@ -370,3 +370,91 @@
   @apply border-neo-danger bg-neo-danger/10;
   animation: neo-error-flash 0.5s ease-in-out 2;
 }
+
+/* 6-slot room code entry (Enter room) */
+.room-code-input {
+  position: relative;
+  cursor: text;
+  padding: 0.5rem 0;
+}
+
+.room-code-cells {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 380px) {
+  .room-code-cells {
+    gap: 0.625rem;
+  }
+}
+
+.room-code-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 3.25rem;
+  border: 3px solid var(--color-neo-ink);
+  background: var(--color-neo-surface);
+  box-shadow: 3px 3px 0 0 var(--color-neo-ink);
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+@media (min-width: 380px) {
+  .room-code-cell {
+    width: 3rem;
+    height: 3.5rem;
+  }
+}
+
+.room-code-cell--filled {
+  background: var(--color-neo-primary);
+}
+
+.room-code-cell--active {
+  background: color-mix(in srgb, var(--color-neo-primary) 35%, var(--color-neo-surface));
+  box-shadow: 5px 5px 0 0 var(--color-neo-ink);
+  transform: translate(-1px, -1px);
+}
+
+.room-code-char {
+  font-family: var(--font-display, ui-monospace, monospace);
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.room-code-cell:not(.room-code-cell--filled) .room-code-char {
+  color: color-mix(in srgb, var(--color-neo-ink) 28%, transparent);
+  font-weight: 700;
+}
+
+.room-code-input--focused .room-code-cell--active {
+  outline: 3px solid var(--color-neo-ink);
+  outline-offset: 2px;
+}
+
+.room-code-input--error .room-code-cell {
+  border-color: var(--color-neo-danger);
+  background: color-mix(in srgb, var(--color-neo-danger) 12%, var(--color-neo-surface));
+}
+
+.room-code-input--error .room-code-cell--filled {
+  background: color-mix(in srgb, var(--color-neo-danger) 25%, var(--color-neo-primary));
+}
+
+.room-code-hidden {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: text;
+  font-size: 16px; /* avoids iOS zoom on focus */
+}

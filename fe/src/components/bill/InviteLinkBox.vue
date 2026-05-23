@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import NeoButton from '../ui/NeoButton.vue'
 import { inviteLink } from '../../composables/useShareInvite'
+import { copyToClipboard } from '../../utils/copyToClipboard.js'
 
 const props = defineProps({
   roomCode: { type: String, required: true },
@@ -12,19 +13,21 @@ const copiedRoom = ref(false)
 const link = inviteLink(props.roomCode)
 
 async function copyLink() {
-  await navigator.clipboard.writeText(link)
-  copiedLink.value = true
-  setTimeout(() => {
-    copiedLink.value = false
-  }, 2000)
+  if (await copyToClipboard(link)) {
+    copiedLink.value = true
+    setTimeout(() => {
+      copiedLink.value = false
+    }, 2000)
+  }
 }
 
 async function copyRoom() {
-  await navigator.clipboard.writeText(props.roomCode)
-  copiedRoom.value = true
-  setTimeout(() => {
-    copiedRoom.value = false
-  }, 2000)
+  if (await copyToClipboard(props.roomCode)) {
+    copiedRoom.value = true
+    setTimeout(() => {
+      copiedRoom.value = false
+    }, 2000)
+  }
 }
 </script>
 

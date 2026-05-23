@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generateRoomCode } from '../utils/helpers.js';
 import { calculateBill } from '../services/calc.service.js';
+import { sessionCookieOptions } from '../utils/cookieOptions.js';
 
 /**
  * Host creates a room.
@@ -23,13 +24,6 @@ function getCookie(req, name) {
   }, {});
   return cookies[name] || null;
 }
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-};
 
 /** Resolve Bearer, cookie, or create a new anonymous Supabase user. */
 async function resolveUserId(req, nickname = 'Guest') {
@@ -236,7 +230,7 @@ export async function createRoom(req, res) {
     }
 
     // 7. Set host_id Cookie in Response (dynamically configured secure/sameSite for local dev)
-    res.cookie('host_id', hostId, cookieOptions);
+    res.cookie('host_id', hostId, sessionCookieOptions());
 
     // 8. Return response (with root-level fields for backward compatibility with existing tests)
     return res.status(201).json({
@@ -344,7 +338,7 @@ export async function joinRoom(req, res) {
       return res.status(500).json({ error: err.message });
     }
 
-    res.cookie('user_id', userId, cookieOptions);
+    res.cookie('user_id', userId, sessionCookieOptions());
     // 1. Locate the room
     const { data: room, error: roomError } = await supabaseAdmin
       .from('bill_rooms')
@@ -433,12 +427,7 @@ export async function joinRoom(req, res) {
     }
 
     // 5. Set user_id Cookie in Response (dynamically configured secure/sameSite for local dev)
-    res.cookie('user_id', resolvedUserId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
+    res.cookie('user_id', resolvedUserId, sessionCookieOptions());
 
     // 6. Trigger dynamic bill recalculation immediately (Equal mode re-split or item updates)
     await calculateBill(room.room_id);

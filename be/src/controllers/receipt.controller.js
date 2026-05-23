@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { parseReceiptImage } from '../services/ocr.service.js';
 import { calculateBill } from '../services/calc.service.js';
+import { ensurePublicBucket } from '../utils/storageBuckets.js';
 
 /**
  * Upload receipt image and run AI OCR scanning.
@@ -31,11 +32,7 @@ export async function uploadReceipt(req, res) {
       return res.status(400).json({ error: 'Cannot upload receipt to a completed room.' });
     }
 
-    // 2. Upload file to Supabase Storage bucket 'receipts'
-    // Create bucket if it doesn't exist (failsafe for new databases)
-    await supabaseAdmin.storage.createBucket('receipts', { public: true }).catch(() => {
-      // Bucket might already exist, fail silently
-    });
+    await ensurePublicBucket('receipts');
 
     const fileExt = file.originalname.split('.').pop();
     const fileName = `${room_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;

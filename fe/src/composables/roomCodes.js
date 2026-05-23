@@ -3,6 +3,13 @@ const ROOM_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/i
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+export function normalizeRoomCodeInput(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/[^A-HJ-NP-Z2-9]/g, '')
+    .slice(0, 6)
+}
+
 export function isRoomCode(value) {
   return ROOM_CODE_RE.test(String(value || '').trim())
 }

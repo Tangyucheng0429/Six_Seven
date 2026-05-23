@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { notifyHostMemberPaymentSubmittedSafe } from '../services/notify.service.js';
+import { ensurePublicBucket } from '../utils/storageBuckets.js';
 
 /**
  * Member uploads transfer proof screenshot.
@@ -29,7 +30,8 @@ export async function submitProof(req, res) {
       return res.status(404).json({ error: 'Participant bill record not found.' });
     }
 
-    // 3. Vercel-Safe upload to Supabase Storage proofs bucket (static bucket design)
+    await ensurePublicBucket('proofs');
+
     const fileExt = file.originalname.split('.').pop() || 'jpg';
     const fileName = `${room_id}/${user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 

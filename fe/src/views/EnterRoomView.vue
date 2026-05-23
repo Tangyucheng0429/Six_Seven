@@ -3,12 +3,13 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowNavBar from '../components/layout/FlowNavBar.vue'
-import NeoInput from '../components/ui/NeoInput.vue'
+import RoomCodeInput from '../components/ui/RoomCodeInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoomState } from '../composables/useRoomState'
-import { useFormValidation, isFilled } from '../composables/useFormValidation'
+import { useFormValidation } from '../composables/useFormValidation'
+import { isRoomCode } from '../composables/roomCodes'
 import { staticBackRoute } from '../constants/flows'
 
 const router = useRouter()
@@ -28,7 +29,7 @@ async function submit() {
   const code = roomNumber.value.trim().toUpperCase()
   serverError.value = ''
 
-  if (!validate([{ key: 'room-no', valid: isFilled(code) }])) return
+  if (!validate([{ key: 'room-no', valid: isRoomCode(code), message: 'Enter all 6 characters.' }])) return
 
   loading.value = true
   try {
@@ -56,13 +57,10 @@ function goBack() {
   <AppShell title="Enter room number" subtitle="Join a bill without the invite link.">
     <form id="enter-room-form" class="space-y-4" @submit.prevent="submit">
       <ValidationAlert :message="hint || serverError" :shake="shaking" />
-      <NeoInput
+      <RoomCodeInput
         id="room-no"
         v-model="roomNumber"
         label="Room number"
-        placeholder="e.g. JKRRK6"
-        maxlength="6"
-        autocomplete="off"
         :error="hasError('room-no') || !!serverError"
         :error-message="serverError || fieldHint('room-no')"
         :shake="(hasError('room-no') || !!serverError) && shaking"
