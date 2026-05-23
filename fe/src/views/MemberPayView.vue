@@ -138,9 +138,13 @@ function goBack() {
     <MemberPayBreakdown :room="room" :member-id="member.id" />
 
     <ReceiptPreviewCard
-      v-if="room.receiptImageUrl && room.splitMode === 'item'"
+      v-if="room.receiptImageUrl"
       :image-url="room.receiptImageUrl"
-      hint="Original receipt from host — compare with your items above."
+      :hint="
+        room.splitMode === 'equal'
+          ? 'Original receipt from host — check the bill while you pay your share.'
+          : 'Original receipt from host — compare with your items above.'
+      "
     />
 
     <PaymentMethodCard :method="room.paymentMethod" />
