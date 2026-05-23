@@ -8,8 +8,10 @@ import NeoInput from '../components/ui/NeoInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
 import { useRoomState } from '../composables/useRoomState'
+import { apiErrorMessage } from '../api/client.js'
 import { useFormValidation, isFilled, isEmail } from '../composables/useFormValidation'
 import { HOST_STEPS, staticBackRoute } from '../constants/flows'
+import { hostRoomPath } from '../composables/roomPaths'
 
 const router = useRouter()
 const { createRoom } = useRoomState()
@@ -20,15 +22,18 @@ const hostName = ref('')
 const hostEmail = ref('')
 const dueDate = ref('')
 const loading = ref(false)
+const apiError = ref('')
 
-const minDate = new Date().toISOString().slice(0, 10)
+const min = new Date()
+min.setDate(min.getDate() + 1)
+const minDate = min.toISOString().slice(0, 10)
 
 watch(roomName, () => clearField('room'))
 watch(hostName, () => clearField('host'))
 watch(hostEmail, () => clearField('email'))
 watch(dueDate, () => clearField('due'))
 
-function submit() {
+async function submit() {
   const emailFilled = isFilled(hostEmail.value)
   const emailValid = isEmail(hostEmail.value)
 
@@ -44,13 +49,20 @@ function submit() {
   }
 
   loading.value = true
-  const room = createRoom({
-    name: roomName.value.trim(),
-    hostName: hostName.value.trim(),
-    hostEmail: hostEmail.value.trim(),
-    dueDate: dueDate.value,
-  })
-  router.push(`/room/${room.id}/upload`)
+  apiError.value = ''
+  try {
+    const room = await createRoom({
+      name: roomName.value.trim(),
+      hostName: hostName.value.trim(),
+      hostEmail: hostEmail.value.trim(),
+      dueDate: dueDate.value,
+    })
+    router.push(hostRoomPath(room, 'upload'))
+  } catch (err) {
+    apiError.value = apiErrorMessage(err)
+  } finally {
+    loading.value = false
+  }
 }
 
 function goBack() {
@@ -66,7 +78,7 @@ function goBack() {
     <FlowProgress :steps="HOST_STEPS" :current="0" />
 
     <form id="create-form" class="space-y-4" @submit.prevent="submit">
-      <ValidationAlert class="mb-2" :message="hint" :shake="shaking" />
+      <ValidationAlert class="mb-2" :message="hint || apiError" :shake="shaking" />
       <NeoInput
         id="room"
         v-model="roomName"

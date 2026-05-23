@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import FlowProgress from '../components/layout/FlowProgress.vue'
@@ -11,19 +11,30 @@ import AmountSummary from '../components/bill/AmountSummary.vue'
 import PaymentProofList from '../components/bill/PaymentProofList.vue'
 import MemberChip from '../components/bill/MemberChip.vue'
 import DueDateAlert from '../components/bill/DueDateAlert.vue'
-import { useRoom, useRoomState } from '../composables/useRoomState'
+import { useRoom, useRoomState, clearMemberSessionIfHost } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
-import { shareInvite } from '../composables/useShareInvite'
 import { HOST_STEPS, hostStepIndex } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
-const { confirmPayment, completeRoom, checkDueDate, unpaidTotal } = useRoomState()
+const { confirmPayment, completeRoom, checkDueDate, unpaidTotal, fetchRoom } = useRoomState()
+
+let pollTimer = null
 
 onMounted(() => {
-  if (roomId.value) checkDueDate(roomId.value)
+  if (!roomId.value) return
+  if (room.value) clearMemberSessionIfHost(room.value)
+  checkDueDate(roomId.value)
+  fetchRoom(roomId.value, { role: 'host' }).then((r) => {
+    if (r) clearMemberSessionIfHost(r)
+  })
+  pollTimer = setInterval(() => fetchRoom(roomId.value, { role: 'host' }), 5000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
 })
 
 const unpaid = computed(() => (room.value ? unpaidTotal(room.value) : 0))
@@ -38,15 +49,6 @@ const step = computed(() => hostStepIndex(room.value?.status))
 const isFinished = computed(
   () => room.value?.status === 'completed' || allConfirmed.value,
 )
-
-async function share() {
-  if (!room.value) return
-  await shareInvite({
-    roomId: room.value.id,
-    inviteToken: room.value.inviteToken,
-    title: room.value.name,
-  })
-}
 
 function goHome() {
   if (room.value?.status !== 'completed') {
@@ -65,7 +67,7 @@ function goBack() {
     v-if="room"
     :title="room.name"
     :subtitle="`Due ${formatDueDate(room.dueDate)} · ${room.hostEmail}`"
-    :room-code="room.id"
+    :room-code="room.roomCode || room.id"
   >
     <FlowProgress :steps="HOST_STEPS" :current="step" />
 
@@ -83,14 +85,14 @@ function goBack() {
       :email-sent="room.overdueEmailSent"
     />
 
-    <InviteLinkBox :room-id="room.id" :invite-token="room.inviteToken" />
-
-    <div class="mt-6 space-y-2">
-      <p class="neo-section-label">Members</p>
-      <MemberChip v-for="m in room.members" :key="m.id" :member="m" />
-    </div>
+    <InviteLinkBox :room-code="room.roomCode || room.inviteToken" />
 
     <AmountSummary class="mt-6" :room="room" :items="room.items" :members="room.members" />
+
+    <div class="mt-6 space-y-2">
+      <p class="neo-section-label">Member status</p>
+      <MemberChip v-for="m in room.members" :key="m.id" :member="m" />
+    </div>
 
     <PaymentProofList
       class="mt-6"
@@ -104,7 +106,6 @@ function goBack() {
     </p>
 
     <FlowNavBar v-if="isFinished" hide-back>
-      <NeoButton variant="secondary" block @click="share">Share</NeoButton>
       <NeoButton class="animate-neo-pop" variant="primary" block @click="goHome">
         Done
       </NeoButton>

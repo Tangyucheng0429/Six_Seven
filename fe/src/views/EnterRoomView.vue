@@ -7,40 +7,44 @@ import NeoInput from '../components/ui/NeoInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
-import { getRoomById } from '../composables/useRoomState'
+import { useRoomState } from '../composables/useRoomState'
 import { useFormValidation, isFilled } from '../composables/useFormValidation'
 import { staticBackRoute } from '../constants/flows'
 
 const router = useRouter()
+const { lookupRoomByCode } = useRoomState()
 const { shaking, hint, hasError, fieldHint, clearField, validate, triggerShake } = useFormValidation()
 
 const roomNumber = ref('')
 const serverError = ref('')
+const loading = ref(false)
 
 watch(roomNumber, () => {
   clearField('room-no')
   serverError.value = ''
 })
 
-function submit() {
-  const id = roomNumber.value.trim().toLowerCase()
+async function submit() {
+  const code = roomNumber.value.trim().toUpperCase()
   serverError.value = ''
 
-  if (!validate([{ key: 'room-no', valid: isFilled(id) }])) return
+  if (!validate([{ key: 'room-no', valid: isFilled(code) }])) return
 
-  const room = getRoomById(id)
-  if (!room) {
-    serverError.value = 'Room not found. Check the number with your host.'
-    triggerShake('Room not found. Check the number with your host.')
-    return
-  }
-  if (room.status !== 'open' && room.status !== 'overdue') {
-    serverError.value = 'This bill is not open for members yet. Ask the host to finish setup.'
+  loading.value = true
+  try {
+    const room = await lookupRoomByCode(code)
+    if (room.status !== 'open' && room.status !== 'overdue') {
+      serverError.value = 'This bill is not open for members yet. Ask the host to finish setup.'
+      triggerShake(serverError.value)
+      return
+    }
+    router.push(`/join/${room.roomCode || room.inviteToken}`)
+  } catch (err) {
+    serverError.value = err?.message || 'Room not found. Check the number with your host.'
     triggerShake(serverError.value)
-    return
+  } finally {
+    loading.value = false
   }
-
-  router.push(`/join/${room.inviteToken}?room=${room.id}`)
 }
 
 function goBack() {
@@ -56,7 +60,8 @@ function goBack() {
         id="room-no"
         v-model="roomNumber"
         label="Room number"
-        placeholder="e.g. demo01"
+        placeholder="e.g. JKRRK6"
+        maxlength="6"
         autocomplete="off"
         :error="hasError('room-no') || !!serverError"
         :error-message="serverError || fieldHint('room-no')"
@@ -70,7 +75,9 @@ function goBack() {
     </NeoCard>
 
     <FlowNavBar :shake-continue="shaking" @back="goBack">
-      <NeoButton type="submit" form="enter-room-form" variant="accent" block>Continue</NeoButton>
+      <NeoButton type="submit" form="enter-room-form" variant="accent" block :loading="loading">
+        Continue
+      </NeoButton>
     </FlowNavBar>
   </AppShell>
 </template>

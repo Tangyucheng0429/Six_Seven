@@ -12,6 +12,11 @@ if (process.env.NODE_ENV !== 'test') {
   if (!supabaseUrl) {
     throw new Error('CRITICAL CONFIG ERROR: SUPABASE_URL is missing in your .env file.');
   }
+  if (supabaseUrl.includes('your-project-id')) {
+    throw new Error(
+      'CRITICAL CONFIG ERROR: SUPABASE_URL is still the placeholder. Set it in be/.env to https://<project-ref>.supabase.co from your Supabase dashboard.',
+    );
+  }
   if (!supabaseAnonKey) {
     throw new Error('CRITICAL CONFIG ERROR: SUPABASE_ANON_KEY is missing in your .env file.');
   }

@@ -173,6 +173,8 @@ export async function verifyReceipt(req, res) {
       return res.status(500).json({ error: `Failed resetting receipt items: ${deleteError.message}` });
     }
 
+    let insertedItems = [];
+
     if (items.length > 0) {
       const itemsToInsert = items.map(item => ({
         receipt_id,
@@ -181,20 +183,23 @@ export async function verifyReceipt(req, res) {
         quantity: parseInt(item.quantity || 1, 10)
       }));
 
-      const { error: insertError } = await supabaseAdmin
+      const { data: rows, error: insertError } = await supabaseAdmin
         .from('receipt_items')
-        .insert(itemsToInsert);
+        .insert(itemsToInsert)
+        .select('item_id, item_name, price, quantity');
 
       if (insertError) {
         console.error('[Receipt Controller] Failed inserting verified items:', insertError);
         return res.status(500).json({ error: `Failed saving verified receipt items: ${insertError.message}` });
       }
+
+      insertedItems = rows || [];
     }
 
     // 4. Trigger dynamic bill calculation for room (Equal mode or Item mode recalcs)
     await calculateBill(oldReceipt.room_id);
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, items: insertedItems });
   } catch (error) {
     console.error('[Receipt Controller] Verify Receipt Exception:', error);
     return res.status(500).json({ error: 'An internal server error occurred.' });

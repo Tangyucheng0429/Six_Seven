@@ -22,7 +22,7 @@ defineProps({
       Due date passed — {{ formatMYR(unpaidTotal) }} still unpaid.
     </p>
     <p class="mt-1 text-xs opacity-90">
-      Notification sent to {{ room.hostEmail }} (mock).
+      Notification sent to {{ room.hostEmail }}.
     </p>
   </div>
 </template>

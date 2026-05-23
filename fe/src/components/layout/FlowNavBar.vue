@@ -2,7 +2,7 @@
 import { Comment, computed, useSlots } from 'vue'
 import NeoButton from '../ui/NeoButton.vue'
 
-defineProps({
+const props = defineProps({
   backLabel: { type: String, default: 'Back' },
   backDisabled: { type: Boolean, default: false },
   hideBack: { type: Boolean, default: false },
@@ -16,6 +16,9 @@ const hasNext = computed(() => {
   const nodes = slots.default?.() ?? []
   return nodes.some((node) => node.type !== Comment)
 })
+
+const showBack = computed(() => !props.hideBack)
+const gridCols = computed(() => (showBack.value && hasNext.value ? 'grid-cols-2' : 'grid-cols-1'))
 </script>
 
 <template>
@@ -24,12 +27,9 @@ const hasNext = computed(() => {
     class="fixed inset-x-0 bottom-0 z-10 border-t-3 border-neo-ink bg-neo-bg/90 px-4 py-4 backdrop-blur-sm neo-shadow"
     style="padding-bottom: max(1rem, env(safe-area-inset-bottom))"
   >
-    <div
-      class="mx-auto grid max-w-lg gap-3"
-      :class="hasNext ? 'grid-cols-2' : 'grid-cols-1'"
-    >
+    <div class="mx-auto grid max-w-lg gap-3" :class="gridCols">
       <NeoButton
-        v-if="!hideBack"
+        v-if="showBack"
         block
         class="min-h-12 min-w-0"
         variant="ghost"
@@ -41,7 +41,7 @@ const hasNext = computed(() => {
       <div
         v-if="hasNext"
         class="flow-nav-slot min-w-0"
-        :class="[hideBack ? 'contents' : '', shakeContinue ? 'animate-neo-shake' : '']"
+        :class="[props.hideBack ? 'contents' : '', shakeContinue ? 'animate-neo-shake' : '']"
       >
         <slot />
       </div>

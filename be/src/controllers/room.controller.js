@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generateRoomCode } from '../utils/helpers.js';
 import { calculateBill } from '../services/calc.service.js';
@@ -21,6 +22,113 @@ function getCookie(req, name) {
     return acc;
   }, {});
   return cookies[name] || null;
+}
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+};
+
+/** Resolve Bearer, cookie, or create a new anonymous Supabase user. */
+async function resolveUserId(req, nickname = 'Guest') {
+  if (req.user?.id) return req.user.id;
+
+  if (req.headers.authorization?.startsWith('Bearer ')) {
+    const token = req.headers.authorization.split(' ')[1];
+    try {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && user) return user.id;
+    } catch (err) {
+      console.error('[Room Controller] Bearer token retrieval failed:', err);
+    }
+  }
+
+  const cookieUserId = getCookie(req, 'host_id') || getCookie(req, 'user_id');
+  if (cookieUserId) return cookieUserId;
+
+  const authEmail = `guest-${randomUUID()}@sixseven.local`;
+  const { data: { user: newAuthUser }, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+    email: authEmail,
+    email_confirm: true,
+    user_metadata: { nickname: nickname || 'Guest' },
+  });
+
+  if (createAuthError || !newAuthUser) {
+    throw new Error(`Failed to create session: ${createAuthError?.message || 'Unknown'}`);
+  }
+  return newAuthUser.id;
+}
+
+async function buildRoomPayload(roomId) {
+  const { data: room } = await supabaseAdmin
+    .from('bill_rooms')
+    .select('*')
+    .eq('room_id', roomId)
+    .maybeSingle();
+
+  if (!room) return null;
+
+  const { data: host } = await supabaseAdmin
+    .from('users')
+    .select('user_id, nickname')
+    .eq('user_id', room.host_id)
+    .maybeSingle();
+
+  const { data: receipt } = await supabaseAdmin
+    .from('receipts')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let items = [];
+  let assignments = [];
+
+  if (receipt?.receipt_id) {
+    const { data: receiptItems } = await supabaseAdmin
+      .from('receipt_items')
+      .select('*')
+      .eq('receipt_id', receipt.receipt_id);
+
+    items = receiptItems || [];
+
+    const itemIds = items.map((i) => i.item_id);
+    if (itemIds.length > 0) {
+      const { data: assignmentRows } = await supabaseAdmin
+        .from('item_assignments')
+        .select('item_id, user_id')
+        .in('item_id', itemIds);
+
+      assignments = assignmentRows || [];
+    }
+  }
+
+  const { data: participantBills } = await supabaseAdmin
+    .from('participant_bills')
+    .select('user_id, amount_to_pay, payment_status, proof_image_url')
+    .eq('room_id', roomId);
+
+  const userIds = [...new Set((participantBills || []).map((p) => p.user_id))];
+  let usersById = {};
+
+  if (userIds.length > 0) {
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('user_id, nickname')
+      .in('user_id', userIds);
+
+    usersById = Object.fromEntries((users || []).map((u) => [u.user_id, u.nickname]));
+  }
+
+  const participants = (participantBills || []).map((pb) => ({
+    ...pb,
+    nickname: usersById[pb.user_id] || null,
+  }));
+
+  return { room, host, receipt: receipt || null, items, assignments, participants };
 }
 
 /**
@@ -75,47 +183,12 @@ export async function createRoom(req, res) {
       return res.status(500).json({ error: 'Failed to generate a unique room code. Please try again.' });
     }
 
-    // 3. Host Identity Resolving (Bearer auth OR Cookies check OR create new anonymous profile)
-    let hostId = null;
-
-    // Check req.user injected from middleware
-    if (req.user && req.user.id) {
-      hostId = req.user.id;
-    }
-
-    // Check Bearer authorization header
-    if (!hostId && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-      const token = req.headers.authorization.split(' ')[1];
-      try {
-        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-        if (!error && user) {
-          hostId = user.id;
-        }
-      } catch (err) {
-        console.error('[Room Controller] Bearer token retrieval failed:', err);
-      }
-    }
-
-    // Check Cookies
-    if (!hostId) {
-      const cookieUserId = getCookie(req, 'host_id') || getCookie(req, 'user_id');
-      if (cookieUserId) {
-        hostId = cookieUserId;
-      }
-    }
-
-    // If hostId still not resolved, register a new anonymous account in auth.users
-    if (!hostId) {
-      const { data: { user: newAuthUser }, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-        email_confirm: true,
-        user_metadata: { nickname: nickname || 'Host' }
-      });
-
-      if (createAuthError || !newAuthUser) {
-        console.error('[Room Controller] Anonymous auth user creation failed:', createAuthError);
-        return res.status(500).json({ error: `Failed to create anonymous session: ${createAuthError?.message || 'Unknown'}` });
-      }
-      hostId = newAuthUser.id;
+    let hostId;
+    try {
+      hostId = await resolveUserId(req, nickname || 'Host');
+    } catch (err) {
+      console.error('[Room Controller] Host identity resolution failed:', err);
+      return res.status(500).json({ error: err.message });
     }
 
     // 4. Upsert host profile in public users table
@@ -163,12 +236,7 @@ export async function createRoom(req, res) {
     }
 
     // 7. Set host_id Cookie in Response (dynamically configured secure/sameSite for local dev)
-    res.cookie('host_id', hostId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
+    res.cookie('host_id', hostId, cookieOptions);
 
     // 8. Return response (with root-level fields for backward compatibility with existing tests)
     return res.status(201).json({
@@ -191,6 +259,71 @@ export async function createRoom(req, res) {
 }
 
 /**
+ * Fetch full room state for host dashboard / resume.
+ * GET /api/rooms/:room_id
+ */
+/**
+ * Public lookup by 6-character room code (join / enter-room flows).
+ * GET /api/rooms/code/:room_code
+ */
+export async function getRoomByCode(req, res) {
+  const code = req.params.room_code?.toUpperCase().trim();
+  if (!code) {
+    return res.status(400).json({ error: 'Missing room_code' });
+  }
+
+  try {
+    const { data: room, error: roomError } = await supabaseAdmin
+      .from('bill_rooms')
+      .select('room_id')
+      .eq('room_code', code)
+      .maybeSingle();
+
+    if (roomError || !room) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    const payload = await buildRoomPayload(room.room_id);
+    if (!payload) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    return res.status(200).json({ success: true, ...payload });
+  } catch (error) {
+    console.error('[Room Controller] Get Room By Code Exception:', error);
+    return res.status(500).json({ error: 'An internal server error occurred.' });
+  }
+}
+
+export async function getRoom(req, res) {
+  const { room_id: roomId } = req.params;
+
+  if (!roomId) {
+    return res.status(400).json({ error: 'Missing room_id' });
+  }
+
+  try {
+    const payload = await buildRoomPayload(roomId);
+    if (!payload?.room) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    const userId = req.user?.id;
+    const isHost = payload.room.host_id === userId;
+    const isParticipant = (payload.participants || []).some((p) => p.user_id === userId);
+
+    if (!isHost && !isParticipant) {
+      return res.status(403).json({ error: 'You do not have access to this room.' });
+    }
+
+    return res.status(200).json({ success: true, ...payload });
+  } catch (error) {
+    console.error('[Room Controller] Get Room Exception:', error);
+    return res.status(500).json({ error: 'An internal server error occurred.' });
+  }
+}
+
+/**
  * Member joins room.
  * POST /api/rooms/join
  * Inputs: { room_code, nickname }
@@ -203,6 +336,15 @@ export async function joinRoom(req, res) {
   }
 
   try {
+    let userId;
+    try {
+      userId = await resolveUserId(req, nickname.trim());
+    } catch (err) {
+      console.error('[Room Controller] Member identity resolution failed:', err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    res.cookie('user_id', userId, cookieOptions);
     // 1. Locate the room
     const { data: room, error: roomError } = await supabaseAdmin
       .from('bill_rooms')

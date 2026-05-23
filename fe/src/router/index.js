@@ -13,7 +13,15 @@ import AssignItemsView from '../views/AssignItemsView.vue'
 import MemberPayView from '../views/MemberPayView.vue'
 import MemberDoneView from '../views/MemberDoneView.vue'
 import HistoryView from '../views/HistoryView.vue'
-import { getRoomById } from '../composables/useRoomState'
+import { getRoomById, getActiveMemberId } from '../composables/useRoomState'
+import { isHostOfRoom } from '../composables/useHostCookie'
+import {
+  isRoomCode,
+  hostPathForRouteName,
+  hostRoomPath,
+  memberPathForRouteName,
+  memberRoomPath,
+} from '../composables/roomPaths'
 import {
   hostRouteForStatus,
   isHostDashboardStatus,
@@ -50,33 +58,69 @@ const HOST_STEP_ROUTES = new Set([
   'dashboard',
 ])
 
-router.beforeEach((to, _from, next) => {
+const MEMBER_ROUTES = new Set(['assign', 'pay', 'member-done'])
+
+router.beforeEach((to) => {
   const roomId = to.params.id
+
+  if (roomId && MEMBER_ROUTES.has(to.name)) {
+    const room = getRoomById(roomId)
+    if (room) {
+      const code = room.roomCode || room.inviteToken
+      const slug = code && isRoomCode(code) ? String(code).toUpperCase() : null
+
+      if (slug && String(roomId).toUpperCase() !== slug) {
+        const canonical = memberPathForRouteName(room, to.name)
+        if (canonical) return canonical
+      }
+
+      const memberId = getActiveMemberId()
+      if (isHostOfRoom(room, memberId)) {
+        return hostRoomPath(room, 'dashboard')
+      }
+
+      if (room.status !== 'open' && room.status !== 'overdue') {
+        return code ? `/join/${code}` : '/enter-room'
+      }
+      if (to.name === 'assign' && room.splitMode === 'equal') {
+        return memberRoomPath(room, 'pay')
+      }
+      const payerId = getActiveMemberId()
+      const member = payerId ? room.members?.find((m) => m.id === payerId && !m.isHost) : null
+      if ((member?.confirmed || member?.paid) && to.name !== 'member-done') {
+        return memberRoomPath(room, 'done')
+      }
+    }
+  }
+
   if (!roomId || !HOST_STEP_ROUTES.has(to.name)) {
-    next()
-    return
+    return true
   }
 
   const room = getRoomById(roomId)
   if (!room) {
-    next()
-    return
+    return true
+  }
+
+  const code = room.roomCode || room.inviteToken
+  const slug = code && isRoomCode(code) ? String(code).toUpperCase() : null
+  if (slug && String(roomId).toUpperCase() !== slug) {
+    const canonical = hostPathForRouteName(room, to.name)
+    if (canonical) return canonical
   }
 
   if (to.name === 'dashboard' && !isHostDashboardStatus(room.status)) {
-    next(hostRouteForStatus(roomId, room.status))
-    return
+    return hostRouteForStatus(room, room.status)
   }
 
   const targetIndex = hostRouteIndex(to.name)
   const maxIndex = hostMaxAllowedRouteIndex(room.status)
 
   if (targetIndex > maxIndex) {
-    next(hostRouteForStatus(roomId, room.status))
-    return
+    return hostRouteForStatus(room, room.status)
   }
 
-  next()
+  return true
 })
 
 export default router

@@ -28,3 +28,13 @@ export function registerHostRoom(roomId) {
   if (!ids.includes(roomId)) ids.unshift(roomId)
   writeCookie(ids.slice(0, 30).join(','))
 }
+
+/** True if this browser/user is the bill host (not a paying member). */
+export function isHostOfRoom(room, userId = null) {
+  if (!room) return false
+  if (getHostRoomIds().includes(room.id)) return true
+  if (!userId) return false
+  if (userId === room.hostUserId) return true
+  const participant = room.members?.find((m) => m.id === userId)
+  return Boolean(participant?.isHost)
+}

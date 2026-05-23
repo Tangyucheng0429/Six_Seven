@@ -1,10 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import apiRouter from './routes/index.js';
 import { initScheduler } from './services/cron.service.js';
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;

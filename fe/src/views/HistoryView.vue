@@ -13,7 +13,7 @@ import { hasHostCookie } from '../composables/useHostCookie'
 import { staticBackRoute } from '../constants/flows'
 
 const router = useRouter()
-const { getHostBills } = useRoomState()
+const { getHostBills, fetchRoom } = useRoomState()
 
 const bills = computed(() => getHostBills())
 const completed = computed(() => bills.value.filter((b) => b.room.status === 'completed'))
@@ -23,7 +23,12 @@ function total(room) {
   return room.items.reduce((s, i) => s + itemLineTotal(i), 0)
 }
 
-function openBill(entry) {
+async function openBill(entry) {
+  try {
+    await fetchRoom(entry.roomId)
+  } catch {
+    return
+  }
   const path = openPathForEntry(entry)
   if (router.currentRoute.value.path !== path) {
     router.push(path)
@@ -75,7 +80,7 @@ function goBack() {
                 <div>
                   <p class="text-lg font-bold">{{ entry.room.name }}</p>
                   <p class="text-sm text-neo-ink/70">
-                    Room {{ entry.roomId }} · Due {{ formatDueDate(entry.room.dueDate) }}
+                    Room {{ entry.room.roomCode || entry.roomId }} · Due {{ formatDueDate(entry.room.dueDate) }}
                   </p>
                 </div>
                 <NeoBadge variant="success">completed</NeoBadge>
@@ -98,7 +103,7 @@ function goBack() {
                 {{ statusLabel(entry.room.status) }}
               </NeoBadge>
             </div>
-            <p class="mt-1 text-sm text-neo-ink/70">Room {{ entry.roomId }}</p>
+            <p class="mt-1 text-sm text-neo-ink/70">Room {{ entry.room.roomCode || entry.roomId }}</p>
             <p class="mt-3 font-mono text-xl font-bold">
               {{ entry.room.items.length ? formatMYR(total(entry.room)) : '—' }}
             </p>

@@ -1,9 +1,10 @@
-export function inviteLink(roomId, inviteToken) {
-  return `${window.location.origin}/join/${inviteToken}?room=${roomId}`
+export function inviteLink(roomCode) {
+  const code = String(roomCode || '').trim().toUpperCase()
+  return `${window.location.origin}/join/${code}`
 }
 
-export async function shareInvite({ roomId, inviteToken, title = 'SixSeven bill' }) {
-  const url = inviteLink(roomId, inviteToken)
+export async function shareInvite({ roomCode, title = 'SixSeven bill' }) {
+  const url = inviteLink(roomCode)
   if (navigator.share) {
     try {
       await navigator.share({ title, url })

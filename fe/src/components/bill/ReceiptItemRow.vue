@@ -14,6 +14,8 @@ const props = defineProps({
   item: { type: Object, required: true },
   editable: { type: Boolean, default: false },
   review: { type: Boolean, default: false },
+  /** Hide host "You ate" controls (equal split). */
+  hideHostSplit: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update', 'remove', 'set-host-qty'])
@@ -178,7 +180,7 @@ function onHostQtyInput(value) {
         </div>
       </div>
 
-      <div class="receipt-field-row">
+      <div v-if="!hideHostSplit" class="receipt-field-row">
         <span class="receipt-field-label">You ate</span>
         <div class="receipt-field-control">
           <div class="qty-stepper">

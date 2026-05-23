@@ -1,10 +1,11 @@
 import { hostRouteForStatus } from '../constants/flows'
+import { hostRoomPath, memberRoomPath } from './roomPaths'
 import { getHostRoomIds } from './useHostCookie'
 
-const ROOMS_KEY = 'sixseven_rooms'
+export const ROOMS_KEY = 'sixseven_rooms'
 const ACCESS_KEY = 'sixseven_my_access'
 
-function readJson(key, fallback) {
+export function readJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : fallback
@@ -37,7 +38,18 @@ export function saveMyBill(room, { role, memberId = null }) {
   }
   writeJson(ROOMS_KEY, rooms)
 
-  const access = readJson(ACCESS_KEY, [])
+  let access = readJson(ACCESS_KEY, [])
+  if (role === 'member' && memberId) {
+    access = access.filter(
+      (a) =>
+        !(
+          a.roomId === room.id &&
+          a.role === 'member' &&
+          a.memberId !== memberId
+        ),
+    )
+  }
+
   const member = memberId ? room.members?.find((m) => m.id === memberId) : null
   const entry = {
     roomId: room.id,
@@ -66,6 +78,36 @@ export function getMyAccessList() {
   return readJson(ACCESS_KEY, []).sort(
     (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
   )
+}
+
+/** One row per room — avoids duplicate home-screen entries after re-join / refresh. */
+export function getMyMemberBills(state = null, { limit = 10 } = {}) {
+  const hostIds = new Set(getHostRoomIds())
+  const byRoom = new Map()
+
+  for (const a of getMyAccessList()) {
+    if (a.role !== 'member') continue
+    if (hostIds.has(a.roomId)) continue
+    const prev = byRoom.get(a.roomId)
+    if (!prev || new Date(a.updatedAt) > new Date(prev.updatedAt)) {
+      byRoom.set(a.roomId, a)
+    }
+  }
+
+  return [...byRoom.values()]
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, limit)
+    .map((a) => {
+      const room =
+        state?.rooms?.[a.roomId] || readJson(ROOMS_KEY, {})[a.roomId] || null
+      const code = room?.roomCode || room?.inviteToken || ''
+      return {
+        ...a,
+        room,
+        roomCode: code,
+        title: room?.name || (code ? `Bill ${code}` : 'Bill'),
+      }
+    })
 }
 
 export function getMyRoomsFromStorage(state) {
@@ -114,20 +156,26 @@ export function getHostBills(state) {
 }
 
 export function openPathForEntry(entry) {
-  if (entry.role === 'host') {
-    const room = entry.room
-    if (room && room.status !== 'open' && room.status !== 'overdue') {
-      return hostRouteForStatus(entry.roomId, room.status)
-    }
-    return `/room/${entry.roomId}`
-  }
   const room = entry.room
-  if (!room) return `/join/${entry.roomId}`
-  if (entry.myConfirmed) return `/room/${entry.roomId}/done`
-  if (entry.myPaid) return `/room/${entry.roomId}/done`
-  if (room.splitMode === 'equal') return `/room/${entry.roomId}/pay`
-  if (entry.myAmountDue > 0 || room.status === 'open') {
-    return `/room/${entry.roomId}/pay`
+  if (room && getHostRoomIds().includes(entry.roomId)) {
+    if (room.status !== 'open' && room.status !== 'overdue') {
+      return hostRouteForStatus(room, room.status)
+    }
+    return hostRoomPath(room, 'dashboard')
   }
-  return `/room/${entry.roomId}/assign`
+
+  if (entry.role === 'host') {
+    if (room && room.status !== 'open' && room.status !== 'overdue') {
+      return hostRouteForStatus(room, room.status)
+    }
+    return hostRoomPath(room, 'dashboard')
+  }
+  if (!room) return '/enter-room'
+  if (entry.myConfirmed) return memberRoomPath(room, 'done')
+  if (entry.myPaid) return memberRoomPath(room, 'done')
+  if (room.splitMode === 'equal') return memberRoomPath(room, 'pay')
+  if (entry.myAmountDue > 0 || room.status === 'open') {
+    return memberRoomPath(room, 'pay')
+  }
+  return memberRoomPath(room, 'assign')
 }

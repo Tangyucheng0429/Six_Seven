@@ -1,3 +1,5 @@
+import { hostRoomPath } from '../composables/roomPaths'
+
 export const HOST_STEPS = [
   'Setup',
   'Upload',
@@ -33,20 +35,19 @@ export function memberStepIndex({ splitMode, paid, confirmed }) {
 }
 
 /** Resume host setup at the correct step for room status. */
-export function hostRouteForStatus(roomId, status) {
-  const id = roomId
+export function hostRouteForStatus(roomOrSlug, status) {
   const routes = {
-    draft: `/room/${id}/upload`,
-    uploaded: `/room/${id}/scan`,
-    scanning: `/room/${id}/scan`,
-    split_mode: `/room/${id}/split-mode`,
-    review: `/room/${id}/review`,
-    payment_setup: `/room/${id}/payment-setup`,
-    open: `/room/${id}`,
-    overdue: `/room/${id}`,
-    completed: `/room/${id}`,
+    draft: hostRoomPath(roomOrSlug, 'upload'),
+    uploaded: hostRoomPath(roomOrSlug, 'scan'),
+    scanning: hostRoomPath(roomOrSlug, 'scan'),
+    split_mode: hostRoomPath(roomOrSlug, 'split-mode'),
+    review: hostRoomPath(roomOrSlug, 'review'),
+    payment_setup: hostRoomPath(roomOrSlug, 'payment-setup'),
+    open: hostRoomPath(roomOrSlug, 'dashboard'),
+    overdue: hostRoomPath(roomOrSlug, 'dashboard'),
+    completed: hostRoomPath(roomOrSlug, 'dashboard'),
   }
-  return routes[status] ?? `/room/${id}/upload`
+  return routes[status] ?? hostRoomPath(roomOrSlug, 'upload')
 }
 
 export function isHostDashboardStatus(status) {
@@ -69,9 +70,9 @@ const STATUS_MAX_ROUTE_INDEX = {
   split_mode: 3,
   review: 4,
   payment_setup: 5,
-  open: 5,
-  overdue: 5,
-  completed: 5,
+  open: 6,
+  overdue: 6,
+  completed: 6,
 }
 
 export function hostRouteIndex(routeName) {
@@ -83,14 +84,13 @@ export function hostMaxAllowedRouteIndex(status) {
   return STATUS_MAX_ROUTE_INDEX[status] ?? 0
 }
 
-export function hostBackRoute(roomId, routeName) {
-  const id = roomId
+export function hostBackRoute(roomOrSlug, routeName) {
   const map = {
     upload: '/',
-    scan: `/room/${id}/upload`,
-    'split-mode': `/room/${id}/upload`,
-    review: `/room/${id}/split-mode`,
-    'payment-setup': `/room/${id}/review`,
+    scan: hostRoomPath(roomOrSlug, 'upload'),
+    'split-mode': hostRoomPath(roomOrSlug, 'upload'),
+    review: hostRoomPath(roomOrSlug, 'split-mode'),
+    'payment-setup': hostRoomPath(roomOrSlug, 'review'),
     dashboard: '/',
   }
   return map[routeName] ?? '/'
@@ -108,13 +108,16 @@ export function staticBackRoute(routeName) {
   return map[routeName] ?? '/'
 }
 
-export function memberBackRoute(roomId, routeName, { splitMode, inviteToken } = {}) {
-  const id = roomId
+export function memberBackRoute(roomOrSlug, routeName, { splitMode, inviteToken } = {}) {
   if (routeName === 'pay') {
     if (splitMode === 'equal' && inviteToken) {
-      return `/join/${inviteToken}?room=${id}`
+      return `/join/${inviteToken}`
     }
-    return `/room/${id}/assign`
+    const slug =
+      inviteToken ||
+      (typeof roomOrSlug === 'object' ? roomOrSlug?.roomCode : roomOrSlug) ||
+      roomOrSlug
+    return `/room/${String(slug).toUpperCase()}/assign`
   }
   return staticBackRoute(routeName)
 }

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../config/supabase.js';
+import { notifyHostMemberPaymentSubmittedSafe } from '../services/notify.service.js';
 
 /**
  * Member uploads transfer proof screenshot.
@@ -63,6 +64,8 @@ export async function submitProof(req, res) {
       console.error('[Payment Controller] Failed to update bill status:', updateError);
       return res.status(500).json({ error: `Failed to update payment status: ${updateError.message}` });
     }
+
+    notifyHostMemberPaymentSubmittedSafe(room_id, user_id);
 
     return res.status(200).json({
       success: true,

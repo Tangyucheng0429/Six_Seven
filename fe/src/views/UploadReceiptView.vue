@@ -12,6 +12,7 @@ import { useRoom, useRoomState } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
 import { useFormValidation } from '../composables/useFormValidation'
 import { HOST_STEPS, hostBackRoute } from '../constants/flows'
+import { hostRoomPath } from '../composables/roomPaths'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,9 +23,9 @@ const { shaking, hint, hasError, fieldHint, clearField, validate } = useFormVali
 
 const preview = ref(room.value?.receiptImageUrl || null)
 
-function onFile({ previewUrl }) {
+function onFile({ file, previewUrl }) {
   preview.value = previewUrl
-  setReceiptImage(roomId.value, previewUrl)
+  setReceiptImage(roomId.value, previewUrl, file)
   clearField('receipt')
 }
 
@@ -37,11 +38,11 @@ function next() {
   if (!validate([{ key: 'receipt', valid: !!preview.value, message: 'Upload a receipt image' }])) {
     return
   }
-  router.push(`/room/${roomId.value}/scan`)
+  router.push(hostRoomPath(room.value, 'scan'))
 }
 
 function goBack() {
-  router.push(hostBackRoute(roomId.value, 'upload'))
+  router.push(hostBackRoute(room.value, 'upload'))
 }
 </script>
 
@@ -50,7 +51,7 @@ function goBack() {
     v-if="room"
     title="Upload receipt"
     :subtitle="`Due ${formatDueDate(room.dueDate)} · ${room.hostEmail}`"
-    :room-code="room.id"
+    :room-code="room.roomCode || room.id"
   >
     <FlowProgress :steps="HOST_STEPS" :current="1" />
 

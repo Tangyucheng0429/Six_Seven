@@ -97,6 +97,45 @@
     font-weight: 700;
   }
 
+  .qty-stepper-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .assign-item {
+    @apply border-3 border-neo-ink bg-neo-surface p-4 transition-colors;
+    box-shadow: 3px 3px 0 0 var(--color-neo-ink);
+  }
+
+  .assign-item--mine {
+    @apply border-neo-accent bg-neo-primary/25;
+  }
+
+  .assign-item--partial {
+    @apply border-neo-ink bg-neo-bg;
+  }
+
+  .assign-item--taken {
+    @apply border-neo-ink/40 bg-neo-ink/5 opacity-80;
+  }
+
+  .assign-item-claimants {
+    @apply mt-2 flex flex-wrap gap-1.5;
+  }
+
+  .assign-item-tag {
+    @apply inline-flex items-center border-2 border-neo-ink bg-neo-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+  }
+
+  .assign-item-tag--mine {
+    @apply border-neo-accent bg-neo-primary;
+  }
+
+  .assign-item-tag--other {
+    @apply border-neo-ink/50 bg-neo-ink/10 text-neo-ink/80;
+  }
+
   .qty-stepper-value {
     min-width: 0;
     min-height: 2.5rem;
@@ -132,6 +171,136 @@
     .receipt-field-label {
       padding-top: 0.625rem;
     }
+  }
+
+  /* Member pay slip — thermal receipt (NeoCard provides border + shadow) */
+  .receipt-slip {
+    overflow: visible;
+    position: relative;
+  }
+
+  .receipt-slip__due {
+    border-bottom: 3px solid var(--color-neo-ink);
+    background: var(--color-neo-primary);
+    padding: 0.875rem 1rem 1rem;
+    text-align: center;
+  }
+
+  .receipt-slip__body {
+    padding: 1rem 1.125rem 0.75rem;
+  }
+
+  .receipt-slip__shop {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+
+  .receipt-slip__meta {
+    margin-top: 0.25rem;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--color-neo-ink) 65%, transparent);
+  }
+
+  .receipt-slip__rule {
+    margin: 0.75rem 0;
+    border: 0;
+    border-top: 2px dashed color-mix(in srgb, var(--color-neo-ink) 35%, transparent);
+  }
+
+  .receipt-slip__rule--double {
+    border-top: 4px double var(--color-neo-ink);
+  }
+
+  .receipt-slip__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.125rem 0;
+  }
+
+  .receipt-slip__row--item {
+    padding: 0.25rem 0;
+  }
+
+  .receipt-slip__item {
+    min-width: 0;
+    flex: 1;
+    font-weight: 700;
+  }
+
+  .receipt-slip__qty {
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-neo-ink) 55%, transparent);
+  }
+
+  .receipt-slip__amt {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .receipt-slip__row--subtle .receipt-slip__item,
+  .receipt-slip__row--subtle .receipt-slip__amt {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-neo-ink) 80%, transparent);
+  }
+
+  .receipt-slip__row--total {
+    padding: 0.5rem 0;
+    font-size: 1rem;
+  }
+
+  .receipt-slip__row--total .receipt-slip__item {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .receipt-slip__row--total .receipt-slip__amt {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .receipt-slip__foot {
+    margin-top: 0.75rem;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-neo-ink) 55%, transparent);
+  }
+
+  .receipt-slip__tear {
+    height: 10px;
+    margin-top: -1px;
+    background-color: var(--color-neo-surface);
+    background-image: linear-gradient(
+        45deg,
+        var(--color-neo-bg) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--color-neo-bg) 75%
+      ),
+      linear-gradient(
+        45deg,
+        var(--color-neo-bg) 25%,
+        transparent 25%,
+        transparent 75%,
+        var(--color-neo-bg) 75%
+      );
+    background-position:
+      0 0,
+      5px 5px;
+    background-size: 10px 10px;
   }
 
   .neo-card-interactive {

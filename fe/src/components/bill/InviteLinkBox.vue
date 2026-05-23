@@ -1,15 +1,15 @@
 <script setup>
 import { ref } from 'vue'
 import NeoButton from '../ui/NeoButton.vue'
+import { inviteLink } from '../../composables/useShareInvite'
 
 const props = defineProps({
-  roomId: { type: String, required: true },
-  inviteToken: { type: String, required: true },
+  roomCode: { type: String, required: true },
 })
 
 const copiedLink = ref(false)
 const copiedRoom = ref(false)
-const link = `${window.location.origin}/join/${props.inviteToken}?room=${props.roomId}`
+const link = inviteLink(props.roomCode)
 
 async function copyLink() {
   await navigator.clipboard.writeText(link)
@@ -20,7 +20,7 @@ async function copyLink() {
 }
 
 async function copyRoom() {
-  await navigator.clipboard.writeText(props.roomId)
+  await navigator.clipboard.writeText(props.roomCode)
   copiedRoom.value = true
   setTimeout(() => {
     copiedRoom.value = false
@@ -32,11 +32,11 @@ async function copyRoom() {
   <div class="space-y-3">
     <div class="border-3 border-neo-ink bg-neo-surface p-4 neo-shadow">
       <p class="text-xs font-bold uppercase tracking-widest">Room number</p>
-      <p class="mt-2 font-mono text-2xl font-bold">{{ roomId }}</p>
+      <p class="mt-2 font-mono text-3xl font-bold tracking-widest">{{ roomCode }}</p>
       <NeoButton class="mt-3" variant="secondary" block @click="copyRoom">
         {{ copiedRoom ? 'Copied!' : 'Copy room number' }}
       </NeoButton>
-      <p class="mt-2 text-xs text-neo-ink/70">Members can enter this on the home page.</p>
+      <p class="mt-2 text-xs text-neo-ink/70">6 letters &amp; numbers — enter on the home page or use the link.</p>
     </div>
 
     <div class="border-3 border-neo-ink bg-neo-accent p-4 neo-shadow">
