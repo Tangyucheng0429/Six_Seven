@@ -12,7 +12,7 @@ import ReceiptPreviewCard from '../components/bill/ReceiptPreviewCard.vue'
 import PaymentProofList from '../components/bill/PaymentProofList.vue'
 import MemberChip from '../components/bill/MemberChip.vue'
 import DueDateAlert from '../components/bill/DueDateAlert.vue'
-import { useRoom, useRoomState, clearMemberSessionIfHost } from '../composables/useRoomState'
+import { useRoom, useRoomState, clearMemberSessionIfHost, equalSplitMemberCapacity } from '../composables/useRoomState'
 import { formatDueDate } from '../composables/useDueDate'
 import { HOST_STEPS, hostStepIndex } from '../constants/flows'
 
@@ -46,6 +46,10 @@ const allConfirmed = computed(() => {
 })
 
 const step = computed(() => hostStepIndex(room.value?.status))
+
+const equalCapacity = computed(() =>
+  room.value ? equalSplitMemberCapacity(room.value) : null,
+)
 
 const isFinished = computed(
   () => room.value?.status === 'completed' || allConfirmed.value,
@@ -87,6 +91,18 @@ function goBack() {
     />
 
     <InviteLinkBox :room-code="room.roomCode || room.inviteToken" />
+
+    <p
+      v-if="room.splitMode === 'equal' && equalCapacity"
+      class="mt-3 text-center text-xs font-bold"
+      :class="equalCapacity.isFull ? 'text-neo-danger' : 'text-neo-ink/70'"
+    >
+      <template v-if="equalCapacity.isFull">Invite closed — all {{ equalCapacity.maxMembers }} member slots filled.</template>
+      <template v-else>
+        {{ equalCapacity.spotsLeft }} invite spot{{ equalCapacity.spotsLeft === 1 ? '' : 's' }} left
+        ({{ equalCapacity.memberCount }}/{{ equalCapacity.maxMembers }} members joined)
+      </template>
+    </p>
 
     <ReceiptPreviewCard
       v-if="room.receiptImageUrl"

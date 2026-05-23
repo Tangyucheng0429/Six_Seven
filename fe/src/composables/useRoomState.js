@@ -476,6 +476,26 @@ export function equalSplitPayerCount(room) {
   return Math.max(1, Math.min(99, Math.floor(Number(room?.equalHeadcount) || 1)))
 }
 
+/** Slots for non-host members in equal split (invite capacity). */
+export function equalSplitMemberCapacity(room) {
+  if (room?.splitMode !== 'equal') {
+    return { maxMembers: Infinity, memberCount: 0, headcount: 0, hostParticipates: true, isFull: false, spotsLeft: Infinity }
+  }
+  const headcount = equalSplitPayerCount(room)
+  const hostParticipates = room.equalHostParticipates !== false
+  const maxMembers = hostParticipates ? Math.max(0, headcount - 1) : headcount
+  const memberCount = (room.members || []).filter((m) => !m.isHost).length
+  const spotsLeft = Math.max(0, maxMembers - memberCount)
+  return {
+    maxMembers,
+    memberCount,
+    headcount,
+    hostParticipates,
+    isFull: memberCount >= maxMembers,
+    spotsLeft,
+  }
+}
+
 export function equalSplitShareAmount(room) {
   const total = billSubtotal(room)
   const n = equalSplitPayerCount(room)

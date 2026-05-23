@@ -250,8 +250,9 @@ export function mapApiRoomToFe(payload, localMeta = {}) {
     completedAt: roomRow.status === 'COMPLETED' ? new Date().toISOString() : null,
     createdAt: roomRow.created_at || new Date().toISOString(),
     dbStatus: roomRow.status,
-    equalHeadcount: localMeta.equalHeadcount ?? 2,
-    equalHostParticipates: localMeta.equalHostParticipates ?? true,
+    equalHeadcount: roomRow.equal_headcount ?? localMeta.equalHeadcount ?? 2,
+    equalHostParticipates:
+      roomRow.equal_host_participates ?? localMeta.equalHostParticipates ?? true,
   }
 
   syncRoomDueState(room)
@@ -286,6 +287,9 @@ export function buildVerifyReceiptPayload(room) {
     tax_amount: taxAmount,
     service_charge: serviceCharge,
     total_amount: totalAmount,
+    split_mode: splitModeToApi(room.splitMode || 'equal'),
+    equal_headcount: room.equalHeadcount ?? 2,
+    equal_host_participates: room.equalHostParticipates !== false,
     items: menuItems.map((i) => ({
       item_name: i.name,
       price: i.unitPrice,

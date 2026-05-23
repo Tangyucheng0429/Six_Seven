@@ -75,12 +75,24 @@ export const api = {
 
   verifyReceipt: (body) => apiFetch('/receipts/verify', { method: 'PUT', body }),
 
-  configSplit: ({ roomId, splitMode, paymentMethodType, paymentMethodDetail, qrFile }) => {
+  configSplit: ({
+    roomId,
+    splitMode,
+    paymentMethodType,
+    paymentMethodDetail,
+    qrFile,
+    equalHeadcount,
+    equalHostParticipates,
+  }) => {
     const form = new FormData()
     form.append('room_id', roomId)
     form.append('split_mode', splitMode)
     form.append('payment_method_type', paymentMethodType)
     form.append('payment_method_detail', paymentMethodDetail || '')
+    if (equalHeadcount != null) form.append('equal_headcount', String(equalHeadcount))
+    if (equalHostParticipates != null) {
+      form.append('equal_host_participates', equalHostParticipates ? 'true' : 'false')
+    }
     if (qrFile) form.append('qr_code_file', qrFile)
     return apiFetch('/bills/config-split', { method: 'POST', body: form })
   },

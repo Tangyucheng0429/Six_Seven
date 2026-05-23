@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { calculateBill } from '../services/calc.service.js';
 import { ensurePublicBucket } from '../utils/storageBuckets.js';
+import { normalizeEqualHeadcount } from '../utils/equalSplit.js';
 
 /**
  * Configure split settings and payment methods.
@@ -8,7 +9,14 @@ import { ensurePublicBucket } from '../utils/storageBuckets.js';
  * Inputs: room_id, split_mode, payment_method_type, payment_method_detail, qr_code_file?
  */
 export async function configSplit(req, res) {
-  const { room_id, split_mode, payment_method_type, payment_method_detail } = req.body;
+  const {
+    room_id,
+    split_mode,
+    payment_method_type,
+    payment_method_detail,
+    equal_headcount,
+    equal_host_participates,
+  } = req.body;
   const qrCodeFile = req.file;
 
   if (!room_id || !split_mode || !payment_method_type) {
@@ -81,8 +89,13 @@ export async function configSplit(req, res) {
     const updateData = {
       split_mode,
       payment_method_type,
-      payment_method_detail: payment_method_detail?.trim() || null
+      payment_method_detail: payment_method_detail?.trim() || null,
     };
+
+    if (split_mode === 'EQUAL') {
+      updateData.equal_headcount = normalizeEqualHeadcount(equal_headcount);
+      updateData.equal_host_participates = equal_host_participates !== 'false' && equal_host_participates !== false;
+    }
 
     if (qrCodeUrl) {
       updateData.qr_code_url = qrCodeUrl;

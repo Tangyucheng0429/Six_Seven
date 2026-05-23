@@ -9,7 +9,7 @@ import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoBadge from '../components/ui/NeoBadge.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
-import { getRoomById, useRoomState } from '../composables/useRoomState'
+import { getRoomById, useRoomState, equalSplitMemberCapacity } from '../composables/useRoomState'
 import { apiErrorMessage } from '../api/client.js'
 import { memberRoomPath, hostRoomPath } from '../composables/roomPaths'
 import { formatDueDate } from '../composables/useDueDate'
@@ -27,6 +27,12 @@ const loading = ref(false)
 const joinError = ref('')
 
 const room = computed(() => getRoomById(roomCode.value))
+
+const equalCapacity = computed(() =>
+  room.value ? equalSplitMemberCapacity(room.value) : null,
+)
+
+const roomFull = computed(() => equalCapacity.value?.isFull ?? false)
 
 watch(name, () => clearField('name'))
 
@@ -47,6 +53,10 @@ async function submit() {
   if (!room.value) return
   if (room.value.status !== 'open' && room.value.status !== 'overdue') {
     joinError.value = 'This bill is not open for members yet. Ask the host to finish setup.'
+    return
+  }
+  if (roomFull.value) {
+    joinError.value = `This bill is full (${equalCapacity.value.maxMembers} member${equalCapacity.value.maxMembers === 1 ? '' : 's'} for equal split).`
     return
   }
   if (!validate([{ key: 'name', valid: isFilled(name.value) }])) return
@@ -93,10 +103,18 @@ function goBack() {
       <NeoBadge class="mt-2" variant="default">
         {{ room.splitMode === 'equal' ? 'Equal split — no item picking' : 'Pick your items next' }}
       </NeoBadge>
+      <NeoBadge v-if="roomFull" class="mt-2" variant="danger">Room full</NeoBadge>
+      <p
+        v-else-if="room.splitMode === 'equal' && equalCapacity"
+        class="mt-2 text-xs font-medium text-neo-ink/70"
+      >
+        {{ equalCapacity.spotsLeft }} spot{{ equalCapacity.spotsLeft === 1 ? '' : 's' }} left
+        ({{ equalCapacity.memberCount }}/{{ equalCapacity.maxMembers }} members)
+      </p>
     </NeoCard>
     <p v-else class="font-bold text-neo-danger">{{ joinError || 'Loading room…' }}</p>
 
-    <form v-if="room" id="join-form" class="space-y-4" @submit.prevent="submit">
+    <form v-if="room && !roomFull" id="join-form" class="space-y-4" @submit.prevent="submit">
       <ValidationAlert :message="hint || joinError" :shake="shaking" />
       <NeoInput
         id="name"
@@ -109,8 +127,19 @@ function goBack() {
       />
     </form>
 
+    <p v-if="room && roomFull" class="text-sm font-bold text-neo-danger">
+      Everyone for this equal split has already joined. Ask the host to create a new bill if someone else needs to pay.
+    </p>
+
     <FlowNavBar v-if="room" :shake-continue="shaking" @back="goBack">
-      <NeoButton type="submit" form="join-form" variant="accent" block :loading="loading">
+      <NeoButton
+        v-if="!roomFull"
+        type="submit"
+        form="join-form"
+        variant="accent"
+        block
+        :loading="loading"
+      >
         Continue
       </NeoButton>
     </FlowNavBar>

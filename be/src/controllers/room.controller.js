@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { generateRoomCode } from '../utils/helpers.js';
 import { calculateBill } from '../services/calc.service.js';
 import { sessionCookieOptions } from '../utils/cookieOptions.js';
+import { isEqualSplitRoomFull } from '../utils/equalSplit.js';
 
 /**
  * Host creates a room.
@@ -400,6 +401,23 @@ export async function joinRoom(req, res) {
     }
 
     const isHost = room.host_id === resolvedUserId;
+
+    const { data: existingParticipants } = await supabaseAdmin
+      .from('participant_bills')
+      .select('user_id')
+      .eq('room_id', room.room_id);
+
+    if (
+      !isHost &&
+      isEqualSplitRoomFull(room, existingParticipants || [], resolvedUserId)
+    ) {
+      const max = room.equal_host_participates !== false
+        ? Math.max(0, (room.equal_headcount || 2) - 1)
+        : (room.equal_headcount || 2);
+      return res.status(409).json({
+        error: `This bill is full (${max} member${max === 1 ? '' : 's'} max for equal split). Ask the host for a new link or room.`,
+      });
+    }
 
     // 3. Upsert participant user profile in public users table
     const { error: userError } = await supabaseAdmin.from('users').upsert({

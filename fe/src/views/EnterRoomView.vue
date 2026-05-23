@@ -7,7 +7,7 @@ import RoomCodeInput from '../components/ui/RoomCodeInput.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import ValidationAlert from '../components/ui/ValidationAlert.vue'
-import { useRoomState } from '../composables/useRoomState'
+import { useRoomState, equalSplitMemberCapacity } from '../composables/useRoomState'
 import { useFormValidation } from '../composables/useFormValidation'
 import { isRoomCode } from '../composables/roomCodes'
 import { staticBackRoute } from '../constants/flows'
@@ -36,6 +36,12 @@ async function submit() {
     const room = await lookupRoomByCode(code)
     if (room.status !== 'open' && room.status !== 'overdue') {
       serverError.value = 'This bill is not open for members yet. Ask the host to finish setup.'
+      triggerShake(serverError.value)
+      return
+    }
+    const cap = equalSplitMemberCapacity(room)
+    if (cap.isFull) {
+      serverError.value = `This bill is full (${cap.maxMembers} member${cap.maxMembers === 1 ? '' : 's'} for equal split).`
       triggerShake(serverError.value)
       return
     }

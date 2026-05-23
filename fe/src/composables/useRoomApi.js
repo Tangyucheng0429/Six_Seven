@@ -154,6 +154,8 @@ export async function apiPublishRoom(room, { type, notes, label }) {
     paymentMethodType: paymentTypeToApi(type),
     paymentMethodDetail: notes || label || '',
     qrFile,
+    equalHeadcount: room.equalHeadcount,
+    equalHostParticipates: room.equalHostParticipates,
   })
   pendingQrFiles.delete(room.id)
   return apiFetchRoom(room.id, { ...room, status: 'open' })

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { parseReceiptImage } from '../services/ocr.service.js';
 import { calculateBill } from '../services/calc.service.js';
+import { normalizeEqualHeadcount } from '../utils/equalSplit.js';
 import { ensurePublicBucket } from '../utils/storageBuckets.js';
 
 /**
@@ -122,7 +123,17 @@ export async function uploadReceipt(req, res) {
  * Inputs: { receipt_id, subtotal, tax_amount, service_charge, total_amount, items: [ { item_name, price, quantity } ] }
  */
 export async function verifyReceipt(req, res) {
-  const { receipt_id, subtotal, tax_amount, service_charge, total_amount, items } = req.body;
+  const {
+    receipt_id,
+    subtotal,
+    tax_amount,
+    service_charge,
+    total_amount,
+    items,
+    equal_headcount,
+    equal_host_participates,
+    split_mode,
+  } = req.body;
 
   if (!receipt_id || subtotal === undefined || total_amount === undefined || !Array.isArray(items)) {
     return res.status(400).json({ error: 'Missing required parameters or invalid items array.' });
@@ -191,6 +202,26 @@ export async function verifyReceipt(req, res) {
       }
 
       insertedItems = rows || [];
+    }
+
+    const { data: roomRow } = await supabaseAdmin
+      .from('bill_rooms')
+      .select('split_mode')
+      .eq('room_id', oldReceipt.room_id)
+      .maybeSingle();
+
+    const isEqualRoom = roomRow?.split_mode === 'EQUAL' || split_mode === 'EQUAL';
+    if (isEqualRoom) {
+      await supabaseAdmin
+        .from('bill_rooms')
+        .update({
+          equal_headcount: normalizeEqualHeadcount(equal_headcount),
+          equal_host_participates:
+            equal_host_participates == null
+              ? true
+              : equal_host_participates !== 'false' && equal_host_participates !== false,
+        })
+        .eq('room_id', oldReceipt.room_id);
     }
 
     // 4. Trigger dynamic bill calculation for room (Equal mode or Item mode recalcs)

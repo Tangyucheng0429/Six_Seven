@@ -29,7 +29,7 @@ const headcountLabel = computed(() =>
   <NeoCard>
     <p class="neo-section-label mb-1">Equal split setup</p>
     <p class="mb-4 text-xs text-neo-ink/70">
-      Set who shares the bill before members join. Amounts update when people join the room.
+      Set how many people split the bill. The invite link closes when enough members have joined.
     </p>
 
     <label class="mb-4 flex cursor-pointer items-center gap-3">

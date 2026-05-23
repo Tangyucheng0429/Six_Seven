@@ -248,26 +248,31 @@ export async function mockRpc(funcName, funcArgs) {
     let absorberId = room.host_id;
 
     if (room.split_mode === 'EQUAL') {
-      const baseAmount = roundToTwoDecimals(receipt.total_amount / pbs.length);
-      
-      // Fallback if host left room
+      const headcount = Math.max(1, room.equal_headcount || 2);
+      const baseAmount = roundToTwoDecimals(receipt.total_amount / headcount);
+      const hostParticipates = room.equal_host_participates !== false;
+
       if (!pbs.some(pb => pb.user_id === absorberId)) {
         absorberId = pbs[0].user_id;
       }
 
-      let sumNonAbsorbers = 0.00;
-      pbs.forEach(pb => {
-        if (pb.user_id !== absorberId) {
-          pb.amount_to_pay = baseAmount;
-          sumNonAbsorbers += baseAmount;
+      if (hostParticipates) {
+        let sumNonAbsorbers = 0.00;
+        pbs.forEach(pb => {
+          if (pb.user_id !== absorberId) {
+            pb.amount_to_pay = baseAmount;
+            sumNonAbsorbers += baseAmount;
+          }
+        });
+        const hostPb = pbs.find(pb => pb.user_id === absorberId);
+        if (hostPb) {
+          hostPb.amount_to_pay = roundToTwoDecimals(receipt.total_amount - sumNonAbsorbers);
         }
-      });
-
-      const hostPb = pbs.find(pb => pb.user_id === absorberId);
-      if (hostPb) {
-        hostPb.amount_to_pay = roundToTwoDecimals(receipt.total_amount - sumNonAbsorbers);
+      } else {
+        pbs.forEach(pb => {
+          pb.amount_to_pay = pb.user_id === absorberId ? 0 : baseAmount;
+        });
       }
-
     } else if (room.split_mode === 'ITEM_BASED') {
       const extraRate = receipt.subtotal > 0 ? (receipt.tax_amount + receipt.service_charge) / receipt.subtotal : 0.00;
 

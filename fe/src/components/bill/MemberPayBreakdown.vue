@@ -48,7 +48,7 @@ const memberName = computed(
           v-if="breakdown.memberCount < breakdown.headcount"
           class="mt-1 text-center text-[10px] font-medium text-neo-ink/60"
         >
-          {{ breakdown.memberCount }} joined so far — amount may change when everyone joins
+          {{ breakdown.memberCount }} of {{ breakdown.headcount }} people joined so far
         </p>
 
         <hr class="receipt-slip__rule" />
