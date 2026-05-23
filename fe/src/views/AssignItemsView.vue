@@ -2,9 +2,10 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
-import NeoCard from '../components/ui/NeoCard.vue'
+import FlowProgress from '../components/layout/FlowProgress.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import { useRoom, useRoomState, formatMYR } from '../composables/useRoomState'
+import { MEMBER_STEPS } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,9 +32,11 @@ function next() {
   <AppShell
     v-if="room"
     title="Pick your items"
-    subtitle="Tap each dish you ordered."
+    subtitle="System will calculate your share from selections."
     :room-code="room.id"
   >
+    <FlowProgress :steps="MEMBER_STEPS" :current="1" />
+
     <ul class="space-y-3">
       <li v-for="item in room.items" :key="item.id">
         <button
@@ -48,6 +51,6 @@ function next() {
       </li>
     </ul>
 
-    <NeoButton class="mt-6" variant="primary" block @click="next">Continue to pay</NeoButton>
+    <NeoButton class="mt-6" variant="primary" block @click="next">See amount & pay</NeoButton>
   </AppShell>
 </template>

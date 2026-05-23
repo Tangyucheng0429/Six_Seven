@@ -2,19 +2,21 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
+import FlowProgress from '../components/layout/FlowProgress.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
 import NeoFileUpload from '../components/ui/NeoFileUpload.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
+import { formatDueDate } from '../composables/useDueDate'
+import { HOST_STEPS } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
-const { setReceiptImage, loadReceiptMock } = useRoomState()
+const { setReceiptImage } = useRoomState()
 
 const preview = ref(room.value?.receiptImageUrl || null)
-const scanning = ref(false)
 
 function onFile({ previewUrl }) {
   preview.value = previewUrl
@@ -26,13 +28,8 @@ function onClear() {
   setReceiptImage(roomId.value, null)
 }
 
-async function scan() {
-  if (!preview.value) return
-  scanning.value = true
-  await new Promise((r) => setTimeout(r, 800))
-  loadReceiptMock(roomId.value)
-  scanning.value = false
-  router.push(`/room/${roomId.value}/review`)
+function next() {
+  router.push(`/room/${roomId.value}/scan`)
 }
 </script>
 
@@ -40,18 +37,20 @@ async function scan() {
   <AppShell
     v-if="room"
     title="Upload receipt"
-    subtitle="Snap or upload — AI will read the items (mock for now)."
+    :subtitle="`Due ${formatDueDate(room.dueDate)} · ${room.hostEmail}`"
     :room-code="room.id"
   >
+    <FlowProgress :steps="HOST_STEPS" :current="1" />
+
     <NeoFileUpload label="Receipt image" :preview-url="preview" @file="onFile" @clear="onClear" />
 
     <NeoCard class="mt-4">
-      <p class="text-xs font-bold uppercase">Tip</p>
-      <p class="mt-1 text-sm">Flat, well-lit photos work best for Malaysian receipt formats.</p>
+      <p class="text-xs font-bold uppercase">Next</p>
+      <p class="mt-1 text-sm">OCR / AI will extract line items from Malaysian receipt formats.</p>
     </NeoCard>
 
-    <NeoButton class="mt-6" variant="primary" block :disabled="!preview" :loading="scanning" @click="scan">
-      Scan receipt
+    <NeoButton class="mt-6" variant="primary" block :disabled="!preview" @click="next">
+      Run OCR scan
     </NeoButton>
   </AppShell>
 </template>

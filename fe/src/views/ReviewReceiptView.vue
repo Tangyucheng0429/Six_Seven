@@ -2,22 +2,19 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
+import FlowProgress from '../components/layout/FlowProgress.vue'
 import NeoCard from '../components/ui/NeoCard.vue'
 import NeoButton from '../components/ui/NeoButton.vue'
+import NeoBadge from '../components/ui/NeoBadge.vue'
 import ReceiptItemRow from '../components/bill/ReceiptItemRow.vue'
-import SplitModeToggle from '../components/bill/SplitModeToggle.vue'
 import { useRoom, useRoomState } from '../composables/useRoomState'
+import { HOST_STEPS } from '../constants/flows'
 
 const route = useRoute()
 const router = useRouter()
 const roomId = computed(() => route.params.id)
 const room = useRoom(roomId)
-const { updateItem, setSplitMode, confirmReceipt } = useRoomState()
-
-const splitMode = computed({
-  get: () => room.value?.splitMode ?? 'item',
-  set: (v) => setSplitMode(roomId.value, v),
-})
+const { updateItem, confirmReceipt } = useRoomState()
 
 function confirm() {
   confirmReceipt(roomId.value)
@@ -28,14 +25,18 @@ function confirm() {
 <template>
   <AppShell
     v-if="room"
-    title="Check items"
-    subtitle="Edit anything the AI got wrong, then pick split mode."
+    title="Verify receipt"
+    subtitle="Fix anything the AI got wrong before inviting members."
     :room-code="room.id"
   >
-    <p class="mb-3 text-xs font-bold uppercase tracking-widest">Split mode</p>
-    <SplitModeToggle v-model="splitMode" />
+    <FlowProgress :steps="HOST_STEPS" :current="4" />
 
-    <NeoCard class="mt-6">
+    <div class="mb-4 flex gap-2">
+      <NeoBadge variant="ink">{{ room.splitMode === 'equal' ? 'Equal split' : 'Item-based' }}</NeoBadge>
+      <NeoBadge>{{ room.items.length }} items</NeoBadge>
+    </div>
+
+    <NeoCard>
       <p class="mb-2 text-xs font-bold uppercase">Line items</p>
       <ReceiptItemRow
         v-for="item in room.items"
@@ -46,6 +47,6 @@ function confirm() {
       />
     </NeoCard>
 
-    <NeoButton class="mt-6" variant="primary" block @click="confirm">Confirm & continue</NeoButton>
+    <NeoButton class="mt-6" variant="primary" block @click="confirm">Confirm & set payment</NeoButton>
   </AppShell>
 </template>
