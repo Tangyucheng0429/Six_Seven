@@ -68,7 +68,7 @@ function goBack() {
 
     <NeoCard class="mt-4">
       <p class="text-xs font-bold uppercase">Next</p>
-      <p class="mt-1 text-sm">OCR / AI will extract line items from Malaysian receipt formats.</p>
+      <p class="mt-1 text-sm">Upload a clear photo of your receipt.</p>
     </NeoCard>
 
     <FlowNavBar :shake-continue="shaking" @back="goBack">

@@ -33,7 +33,7 @@ const steps = [
 
 <template>
   <AppShell
-    title="SixSeven"
+    title="SIX7 Bill Splitter System"
     subtitle="Split bills with AI receipt scan — no login for host or members."
   >
     <div class="mb-6 overflow-hidden border-3 border-neo-ink bg-neo-surface neo-shadow">
