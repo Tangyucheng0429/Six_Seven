@@ -385,9 +385,11 @@ export async function joinRoom(req, res) {
 
     // D. If still not resolved, register a new anonymous account in auth.users
     if (!resolvedUserId) {
+      const authEmail = `guest-${randomUUID()}@sixseven.local`;
       const { data: { user: newAuthUser }, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
         email_confirm: true,
-        user_metadata: { nickname: nickname.trim() }
+        user_metadata: { nickname: nickname.trim() },
       });
 
       if (createAuthError || !newAuthUser) {
